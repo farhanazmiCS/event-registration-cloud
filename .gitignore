@@ -26,6 +26,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# node modules and next files
 *.next
-
 *node_modules
+
+# Python environment
+env
