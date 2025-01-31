@@ -1,14 +1,16 @@
-from typing import Union
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from database import get_db
 
 app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"message": "FastAPI is connected to RDS via SSH tunnel!"}
 
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/users")
+def get_users(db: Session = Depends(get_db)):
+    result = db.execute(text("SELECT * FROM users;"))
+    users = result.fetchall()
+    return {"users": [dict(row) for row in users]}
