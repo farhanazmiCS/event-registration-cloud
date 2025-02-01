@@ -1,27 +1,37 @@
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Image from "next/image"
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import Link from "next/link"; // Import Link for navigation
+import { Event } from "../../lib/event_api"; // Fixed double slash
 
-export default function EventCard() {
+interface EventCardProps {
+  event: Event;
+}
+
+export default function EventCard({ event }: EventCardProps) {
   return (
     <Card>
       <Image
         src="/placeholder.svg?height=200&width=400"
-        alt="Event image"
+        alt={event.title}
         width={400}
         height={200}
         className="w-full h-48 object-cover"
       />
       <CardContent className="p-4">
-        <h2 className="text-xl font-semibold mb-2">Event Title</h2>
-        <p className="text-gray-600 mb-2">Date: June 15, 2023</p>
-        <p className="text-gray-600 mb-2">Location: New York, NY</p>
-        <p className="text-gray-600">Price: $50</p>
+        <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
+        <p className="text-gray-600 mb-2">
+          Date: {new Date(event.start_time).toLocaleDateString()} -{" "}
+          {new Date(event.end_time).toLocaleDateString()}
+        </p>
+        <p className="text-gray-600 mb-2">Location: {event.location}</p>
+        <p className="text-gray-600">Price: ${event.price.toFixed(2)}</p>
       </CardContent>
       <CardFooter className="p-4">
-        <Button className="w-full">Book Now</Button>
+        <Link href={`/events/${event.id}`}>
+          <Button className="w-full">More Details</Button>
+        </Link>
       </CardFooter>
     </Card>
-  )
+  );
 }
-
