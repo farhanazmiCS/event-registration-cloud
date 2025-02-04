@@ -1,33 +1,15 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import get_db
-
-app = FastAPI()
-
-# Enable CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-def read_root():
-    return {"message": "FastAPI is connected to RDS via SSH tunnel!"}
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+import time
 from pydantic import BaseModel, EmailStr
 import boto3
 import os
 import hmac, hashlib, base64
 from dotenv import load_dotenv
 import re
-
-
 
 load_dotenv()  # Load AWS credentials from .env
 
@@ -40,13 +22,21 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
 
-
-print(f"COGNITO_CLIENT_ID: {COGNITO_CLIENT_ID}")
-print(f"COGNITO_USER_POOL_ID: {COGNITO_USER_POOL_ID}")
-print(f"AWS_REGION: {AWS_REGION}")
-
-
 app = FastAPI()
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# print(f"COGNITO_CLIENT_ID: {COGNITO_CLIENT_ID}")
+# print(f"COGNITO_USER_POOL_ID: {COGNITO_USER_POOL_ID}")
+# print(f"AWS_REGION: {AWS_REGION}")
 
 class SignupRequest(BaseModel):
     username: str
@@ -66,26 +56,35 @@ class ConfirmSignupRequest(BaseModel):
 class ResendConfirmationRequest(BaseModel):
     username: str
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend origin
-    allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
-)
-
-COGNITO_CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
-COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
-AWS_REGION = os.getenv("AWS_REGION")
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 # Initialize Cognito client
 session = boto3.Session()
 client = session.client("cognito-idp", region_name=AWS_REGION)
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
+
+def validate_phone_number(phone_number: str):
+    """Ensure phone number is in E.164 format (+[country code][number])"""
+    pattern = re.compile(r"^\+\d{6,15}$")
+    if not pattern.match(phone_number):
+        raise HTTPException(status_code=400, detail="Invalid phone number format. Use +[country_code][number]")
+
+def get_secret_hash(username):
+    """Generate Cognito secret hash for authentication"""
+    message = username + COGNITO_CLIENT_ID
+    dig = hmac.new(
+        os.getenv("COGNITO_CLIENT_SECRET").encode("utf-8"),  # Load secret from .env
+        message.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    return base64.b64encode(dig).decode()
+
+@app.get("/")
+def read_root():
+    return {"message": "FastAPI is connected to RDS via SSH tunnel!"}
+
 
 @app.get("/users")
 def get_users(db: Session = Depends(get_db)):
@@ -98,22 +97,6 @@ def get_events(db: Session = Depends(get_db)):
     result = db.execute(text("SELECT * FROM events ORDER BY start_time ASC;"))
     events = result.mappings().all()  # Use .mappings() to return rows as dictionaries
     return {"events": events}
-def get_secret_hash(username):
-    """Generate Cognito secret hash for authentication"""
-    message = username + COGNITO_CLIENT_ID
-    dig = hmac.new(
-        os.getenv("COGNITO_CLIENT_SECRET").encode("utf-8"),  # Load secret from .env
-        message.encode("utf-8"),
-        hashlib.sha256,
-    ).digest()
-    return base64.b64encode(dig).decode()
-
-
-def validate_phone_number(phone_number: str):
-    """Ensure phone number is in E.164 format (+[country code][number])"""
-    pattern = re.compile(r"^\+\d{6,15}$")
-    if not pattern.match(phone_number):
-        raise HTTPException(status_code=400, detail="Invalid phone number format. Use +[country_code][number]")
 
 @app.post("/api/login")
 def login(request: LoginRequest):
@@ -172,9 +155,6 @@ def signup(request: SignupRequest):
         raise HTTPException(status_code=400, detail=f"Invalid parameter: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-import time
 
 @app.post("/api/confirm-signup")
 def confirm_signup(request: ConfirmSignupRequest):
