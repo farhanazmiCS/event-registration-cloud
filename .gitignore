@@ -32,3 +32,8 @@ next-env.d.ts
 
 # Python environment
 env
+
+# Backend environment
+**/__pycache__/
+**/venv/
+**.DS_Store
