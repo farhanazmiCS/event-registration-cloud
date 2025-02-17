@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -10,6 +10,8 @@ import os
 import hmac, hashlib, base64
 from dotenv import load_dotenv
 import re
+from pydantic import BaseModel
+from datetime import datetime
 
 load_dotenv()  # Load AWS credentials from .env
 
@@ -97,6 +99,41 @@ def get_events(db: Session = Depends(get_db)):
     result = db.execute(text("SELECT * FROM events ORDER BY start_time ASC;"))
     events = result.mappings().all()  # Use .mappings() to return rows as dictionaries
     return {"events": events}
+
+# Define a request model for event creation
+class EventCreate(BaseModel):
+    title: str
+    description: str
+    location: str
+    start_time: datetime
+    end_time: datetime
+    price: float
+    max_attendees: int
+    organizer_cognito_sub: str
+
+@app.post("/events")
+def create_event(event: EventCreate, db: Session = Depends(get_db)):
+    query = text("""
+        INSERT INTO events (title, description, location, start_time, end_time, price, max_attendees, organizer_cognito_sub, created_at) 
+        VALUES (:title, :description, :location, :start_time, :end_time, :price, :max_attendees, :organizer_cognito_sub, NOW())
+        RETURNING id
+    """)
+
+    result = db.execute(query, event.dict())
+    db.commit()
+
+    return {"message": "Event created successfully", "event_id": result.scalar()}
+
+@app.get("/events/{event_id}")
+def get_event(event_id: int, db: Session = Depends(get_db)):
+    query = text("SELECT * FROM events WHERE id = :event_id")
+    result = db.execute(query, {"event_id": event_id}).mappings().first()
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    return dict(result)
+
 
 @app.post("/api/login")
 def login(request: LoginRequest):
@@ -227,3 +264,62 @@ def resend_confirmation(request: ResendConfirmationRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/my-events")
+def get_my_events(
+    db: Session = Depends(get_db),
+    user_sub: str = Query("org-12345", description="User Cognito Sub (Default: Alice Johnson)")
+):
+    query = text("""
+        SELECT e.*
+        FROM events e
+        JOIN registrations r ON e.id = r.event_id
+        WHERE r.user_cognito_sub = :user_cognito_sub
+        ORDER BY e.start_time ASC;
+    """)
+
+    result = db.execute(query, {"user_cognito_sub": user_sub})
+    my_events = result.mappings().all()
+
+    return {"events": my_events}
+
+
+@app.get("/createdevents")
+def get_created_events(
+    user_sub: str = Query("org-12345", description="User Cognito Sub (Default: Alice Johnson)"),
+    db: Session = Depends(get_db)
+):
+    query = text("SELECT * FROM events WHERE organizer_cognito_sub = :user_sub ORDER BY start_time ASC")
+    result = db.execute(query, {"user_sub": user_sub}).mappings().all()
+    
+    return {"events": result}
+
+@app.put("/events/{event_id}")
+def update_event(event_id: int, event: EventCreate, db: Session = Depends(get_db)):
+    query = text("""
+        UPDATE events
+        SET title = :title, description = :description, location = :location, 
+            start_time = :start_time, end_time = :end_time, price = :price, 
+            max_attendees = :max_attendees
+        WHERE id = :event_id AND organizer_cognito_sub = :organizer_cognito_sub
+    """)
+
+    result = db.execute(query, {**event.dict(), "event_id": event_id})
+    db.commit()
+
+    if result.rowcount == 0:
+        raise HTTPException(status_code=403, detail="Not allowed to update this event")
+
+    return {"message": "Event updated successfully"}
+
+@app.delete("/events/{event_id}")
+def delete_event(event_id: int, user_sub: str = Query("org-12345"), db: Session = Depends(get_db)):
+    query = text("DELETE FROM events WHERE id = :event_id AND organizer_cognito_sub = :user_sub")
+
+    result = db.execute(query, {"event_id": event_id, "user_sub": user_sub})
+    db.commit()
+
+    if result.rowcount == 0:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this event")
+
+    return {"message": "Event deleted successfully"}
