@@ -1,0 +1,252 @@
+nohup: ignoring input
+DEBUG:botocore.hooks:Changing event name from creating-client-class.iot-data to creating-client-class.iot-data-plane
+DEBUG:botocore.hooks:Changing event name from before-call.apigateway to before-call.api-gateway
+DEBUG:botocore.hooks:Changing event name from request-created.machinelearning.Predict to request-created.machine-learning.Predict
+DEBUG:botocore.hooks:Changing event name from before-parameter-build.autoscaling.CreateLaunchConfiguration to before-parameter-build.auto-scaling.CreateLaunchConfiguration
+DEBUG:botocore.hooks:Changing event name from before-parameter-build.route53 to before-parameter-build.route-53
+DEBUG:botocore.hooks:Changing event name from request-created.cloudsearchdomain.Search to request-created.cloudsearch-domain.Search
+DEBUG:botocore.hooks:Changing event name from docs.*.autoscaling.CreateLaunchConfiguration.complete-section to docs.*.auto-scaling.CreateLaunchConfiguration.complete-section
+DEBUG:botocore.hooks:Changing event name from before-parameter-build.logs.CreateExportTask to before-parameter-build.cloudwatch-logs.CreateExportTask
+DEBUG:botocore.hooks:Changing event name from docs.*.logs.CreateExportTask.complete-section to docs.*.cloudwatch-logs.CreateExportTask.complete-section
+DEBUG:botocore.hooks:Changing event name from before-parameter-build.cloudsearchdomain.Search to before-parameter-build.cloudsearch-domain.Search
+DEBUG:botocore.hooks:Changing event name from docs.*.cloudsearchdomain.Search.complete-section to docs.*.cloudsearch-domain.Search.complete-section
+DEBUG:botocore.utils:IMDS ENDPOINT: http://169.254.169.254/
+DEBUG:botocore.credentials:Looking for credentials via: env
+DEBUG:botocore.credentials:Looking for credentials via: assume-role
+DEBUG:botocore.credentials:Looking for credentials via: assume-role-with-web-identity
+DEBUG:botocore.credentials:Looking for credentials via: sso
+DEBUG:botocore.credentials:Looking for credentials via: shared-credentials-file
+DEBUG:botocore.credentials:Looking for credentials via: custom-process
+DEBUG:botocore.credentials:Looking for credentials via: config-file
+DEBUG:botocore.credentials:Looking for credentials via: ec2-credentials-file
+DEBUG:botocore.credentials:Looking for credentials via: boto-config
+DEBUG:botocore.credentials:Looking for credentials via: container-role
+DEBUG:botocore.credentials:Looking for credentials via: iam-role
+DEBUG:urllib3.connectionpool:Starting new HTTP connection (1): 169.254.169.254:80
+DEBUG:urllib3.connectionpool:http://169.254.169.254:80 "PUT /latest/api/token HTTP/1.1" 200 56
+DEBUG:urllib3.connectionpool:Resetting dropped connection: 169.254.169.254
+DEBUG:urllib3.connectionpool:http://169.254.169.254:80 "GET /latest/meta-data/iam/security-credentials/ HTTP/1.1" 404 339
+DEBUG:botocore.utils:Metadata service returned non-200 response with status code of 404 for url: http://169.254.169.254/latest/meta-data/iam/security-credentials/, content body: b'<?xml version="1.0" encoding="iso-8859-1"?>\n<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"\n\t\t "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">\n <head>\n  <title>404 - Not Found</title>\n </head>\n <body>\n  <h1>404 - Not Found</h1>\n </body>\n</html>\n'
+DEBUG:botocore.utils:Max number of attempts exceeded (1) when attempting to retrieve data from metadata service.
+DEBUG:botocore.loaders:Loading JSON file: /home/ec2-user/Projects/event-registration-cloud/myVenv/lib/python3.13/site-packages/botocore/data/endpoints.json
+DEBUG:botocore.loaders:Loading JSON file: /home/ec2-user/Projects/event-registration-cloud/myVenv/lib/python3.13/site-packages/botocore/data/sdk-default-configuration.json
+DEBUG:botocore.hooks:Event choose-service-name: calling handler <function handle_service_name_alias at 0x7f4e5d9099e0>
+DEBUG:botocore.loaders:Loading JSON file: /home/ec2-user/Projects/event-registration-cloud/myVenv/lib/python3.13/site-packages/botocore/data/cognito-idp/2016-04-18/service-2.json.gz
+DEBUG:botocore.loaders:Loading JSON file: /home/ec2-user/Projects/event-registration-cloud/myVenv/lib/python3.13/site-packages/botocore/data/cognito-idp/2016-04-18/endpoint-rule-set-1.json.gz
+DEBUG:botocore.loaders:Loading JSON file: /home/ec2-user/Projects/event-registration-cloud/myVenv/lib/python3.13/site-packages/botocore/data/partitions.json
+DEBUG:botocore.hooks:Event creating-client-class.cognito-identity-provider: calling handler <function add_generate_presigned_url at 0x7f4e5da6e700>
+DEBUG:botocore.configprovider:Looking for endpoint for cognito-idp via: environment_service
+DEBUG:botocore.configprovider:Looking for endpoint for cognito-idp via: environment_global
+DEBUG:botocore.configprovider:Looking for endpoint for cognito-idp via: config_service
+DEBUG:botocore.configprovider:Looking for endpoint for cognito-idp via: config_global
+DEBUG:botocore.configprovider:No configured endpoint found.
+DEBUG:botocore.endpoint:Setting cognito-idp timeout as (60, 60)
+DEBUG:botocore.loaders:Loading JSON file: /home/ec2-user/Projects/event-registration-cloud/myVenv/lib/python3.13/site-packages/botocore/data/_retry.json
+DEBUG:botocore.client:Registering retry handlers for service: cognito-idp
+INFO:     Started server process [3539]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 80): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+COGNITO_CLIENT_ID: 2fbdk8hh3kjdlvhtv53dv4et1m
+COGNITO_USER_POOL_ID: us-east-1_20W6q7U6N
+COGNITO_REGION: us-east-1
+COGNITO_CLIENT_SECRET: 1eqf0an8blh92m6ilv514egm2id5i48pmu6vvq7injmdqINFO:     172.31.31.62:53896 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:39662 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43074 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50750 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.31.31.62:43388 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:11052 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:12496 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:12258 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:8878 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:25752 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:40984 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:12432 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:46124 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:35490 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     172.31.31.62:62260 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:41776 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:26990 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:29480 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:16890 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:22674 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:35906 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:41338 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:28736 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:52118 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:16292 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:49462 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:41116 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:23328 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     172.31.31.62:42110 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:22358 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:46956 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:27862 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:54846 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:17926 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:48608 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:48792 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:14754 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:19818 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:58812 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:50950 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:1478 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:24658 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:25716 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:51668 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:21090 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:13786 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:48676 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:25560 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:9340 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:44352 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:40092 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:37802 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:62942 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:5580 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:49452 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:45026 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     172.31.31.62:52710 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:22116 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:28126 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:53854 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:52814 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:3240 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:60504 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:40248 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:37230 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:64322 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:36520 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:12816 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:57806 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:27830 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:29508 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:20554 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:49096 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:28168 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:18588 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:28826 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     172.31.31.62:53958 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:12074 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:32838 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:54160 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:7404 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:33714 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     172.31.31.62:40342 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:25946 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:30294 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:61964 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:17994 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:4966 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:35600 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:51558 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:31140 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:10462 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:26018 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:9898 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:52372 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:56212 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:12704 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:52088 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:44078 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:35458 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:42892 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:44274 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:6768 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:18734 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:13418 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:26500 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:18056 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:26098 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:47688 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:8700 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:8054 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:14774 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:33570 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:19380 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:46708 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:48820 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     172.31.31.62:45664 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:6174 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:24294 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:25448 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:17596 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:63508 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:55820 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:26948 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:13292 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:47530 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:18076 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:42000 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:18098 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:55640 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:30088 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:62812 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:10358 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:36292 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:44374 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:25768 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:5212 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:35838 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:37050 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:50846 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:31176 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:4796 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:23802 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:43826 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:5064 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:19220 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:59120 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:35744 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:16686 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:26062 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:4356 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:6486 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:37738 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:40508 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:54704 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:35268 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:40718 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:35980 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:50196 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:63270 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     127.0.0.1:40648 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:19850 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:49006 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:9740 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:62024 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:57762 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:38700 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:58048 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:46850 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:9112 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:2292 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+INFO:     172.31.31.62:43134 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:1928 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:34736 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:4500 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:60408 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:30138 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:59728 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:1970 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:45458 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:41950 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:16672 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:27942 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.31.62:36204 - "GET / HTTP/1.1" 200 OK
+INFO:     172.31.34.74:36058 - "GET / HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3527]

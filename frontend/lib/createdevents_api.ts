@@ -2,7 +2,7 @@ import { Event } from "./event_api";
 
 export const fetchCreatedEvents = async (userSub: string = "org-12345"): Promise<Event[]> => {
   try {
-    const response = await fetch(`http://localhost:8080/createdevents?user_sub=${encodeURIComponent(userSub)}`);
+    const response = await fetch(`http://localhost:8000/createdevents?user_sub=${encodeURIComponent(userSub)}`);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch created events. Status: ${response.status}`);
@@ -18,7 +18,7 @@ export const fetchCreatedEvents = async (userSub: string = "org-12345"): Promise
 
 export const updateEvent = async (eventId: number, updatedData: Partial<Event>) => {
     try {
-      const response = await fetch(`http://localhost:8080/events/${eventId}`, {
+      const response = await fetch(`http://localhost:8000/events/${eventId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedData),
@@ -37,7 +37,7 @@ export const updateEvent = async (eventId: number, updatedData: Partial<Event>) 
   
   export const deleteEvent = async (eventId: number) => {
     try {
-      const response = await fetch(`http://localhost:8080/events/${eventId}`, {
+      const response = await fetch(`http://localhost:8000/events/${eventId}`, {
         method: "DELETE",
       });
   
@@ -54,7 +54,7 @@ export const updateEvent = async (eventId: number, updatedData: Partial<Event>) 
   
   export const fetchEventById = async (eventId: string): Promise<Event | null> => {
     try {
-      const response = await fetch(`http://localhost:8080/events/${eventId}`);
+      const response = await fetch(`http://localhost:8000/events/${eventId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch event. Status: ${response.status}`);
       }

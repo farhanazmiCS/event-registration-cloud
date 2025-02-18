@@ -1,50 +1,54 @@
 "use client"
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+
+"use client";
+
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { User } from "lucide-react";
 
 export default function Header() {
-  const router = useRouter()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const router = useRouter();
+  const pathname = usePathname(); // ✅ Detects route changes
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check token on mount
-    const checkAuth = () => {
-      const token = localStorage.getItem("access_token")
-      setIsLoggedIn(!!token) // Convert token existence to boolean
+    // ✅ Check authentication status whenever the route changes
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/user-profile", {
+          method: "GET",
+          credentials: "include", // ✅ Sends cookies automatically
+        });
+
+        if (response.ok) {
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkAuth();
+  }, [pathname]); // ✅ Re-run on route change
+
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:8000/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      setIsLoggedIn(false);
+      router.push("/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
     }
-
-    checkAuth() // Run on first mount
-
-    // Listen for storage changes (for login/logout updates)
-    window.addEventListener("storage", checkAuth)
-
-    return () => {
-      window.removeEventListener("storage", checkAuth)
-    }
-  }, [])
-
-  const handleLogin = () => {
-    router.push("/login")
-  }
-
-  const handleLogout = () => {
-    // Clear tokens
-    localStorage.removeItem("access_token")
-    localStorage.removeItem("refresh_token")
-    localStorage.removeItem("id_token")
-
-    // Update state
-    setIsLoggedIn(false)
-
-    // Notify other tabs of logout
-    window.dispatchEvent(new Event("storage"))
-
-    // Redirect to login
-    router.push("/login")
-  }
+  };
 
   return (
     <header className="bg-white shadow-sm">
@@ -81,17 +85,29 @@ export default function Header() {
             </>
           )} */}
            
+          {isLoggedIn && (
+            <Link href="/profile" className="text-gray-600 hover:text-primary flex items-center">
+              <User className="w-4 h-4 mr-1" />
+              Profile
+            </Link>
+          )}
         </nav>
 
         {/* Auth Buttons */}
         <div className="flex space-x-2">
           {isLoggedIn ? (
-            <Button variant="outline" onClick={handleLogout}>
-              Log Out
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => router.push("/profile")}>
+                <User className="w-4 h-4 mr-1" />
+                Profile
+              </Button>
+              <Button variant="outline" onClick={handleLogout}>
+                Log Out
+              </Button>
+            </>
           ) : (
             <>
-              <Button variant="outline" onClick={handleLogin}>
+              <Button variant="outline" onClick={() => router.push("/login")}>
                 Log In
               </Button>
               <Button>
@@ -102,5 +118,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }

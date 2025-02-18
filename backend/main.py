@@ -1,18 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, Response, Query, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import get_db
-import time
 from pydantic import BaseModel, EmailStr
 import boto3
 import os
 import hmac, hashlib, base64
-from dotenv import load_dotenv
 import re
 from datetime import datetime
-# Logging initialization
 import logging
+from dotenv import load_dotenv
+
 
 load_dotenv()  # Load AWS credentials from .env
 
@@ -159,41 +158,94 @@ def get_event(request: Request, event_id: int, db: Session = Depends(get_db)):
             logger.warning(f"GET {request.url} - Event {event_id} not found")
             raise HTTPException(status_code=404, detail="Event not found")
 
-        logger.info(f"GET {request.url} - Successfully fetched event {event_id}")
-        return dict(result)
-    except Exception as e:
-        logger.error(f"GET {request.url} - Error fetching event {event_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch event")
+    return dict(result)
 
 
+# @app.post("/api/login")
+# def login(request: LoginRequest, response: Response):
+#     try:
+#         logger.info("Attempting to log in user...")
+#         response = client.initiate_auth(
+#             AuthFlow="USER_PASSWORD_AUTH",
+#             AuthParameters={
+#                 "USERNAME": request.email,
+#                 "PASSWORD": request.password,
+#                 "SECRET_HASH": get_secret_hash(request.email),  # Include secret hash
+#             },
+#             ClientId=COGNITO_CLIENT_ID
+#         )
+        
+#         logger.info(f"Login successful: {response}")
+#         return {
+#             "access_token": response["AuthenticationResult"]["AccessToken"],
+#             "refresh_token": response["AuthenticationResult"]["RefreshToken"],
+#             "id_token": response["AuthenticationResult"]["IdToken"]
+#         }
+#     except client.exceptions.NotAuthorizedException as e:
+#         logger.error(f"NotAuthorizedException - {e}")
+#         raise HTTPException(status_code=401, detail="Incorrect username or password")
+#     except client.exceptions.UserNotFoundException as e:
+#         logger.error(f"UserNotFoundException - {e}")
+#         raise HTTPException(status_code=404, detail="User does not exist")
+#     except Exception as e:
+#         logger.error(f"Unexpected Error - {e}")
+#         raise HTTPException(status_code=500, detail=str(e))
+
+### ✅ UPDATED LOGIN ROUTE: Store Tokens in Secure Cookies ###
 @app.post("/api/login")
-def login(request: LoginRequest):
+def login(request: LoginRequest, response: Response):
     try:
-        logger.info("Attempting to log in user...")
-        response = client.initiate_auth(
+        auth_response = client.initiate_auth(
             AuthFlow="USER_PASSWORD_AUTH",
             AuthParameters={
                 "USERNAME": request.email,
                 "PASSWORD": request.password,
-                "SECRET_HASH": get_secret_hash(request.email),  # Include secret hash
+                "SECRET_HASH": get_secret_hash(request.email),
             },
             ClientId=COGNITO_CLIENT_ID
         )
-        
-        logger.info(f"Login successful: {response}")
-        return {
-            "access_token": response["AuthenticationResult"]["AccessToken"],
-            "refresh_token": response["AuthenticationResult"]["RefreshToken"],
-            "id_token": response["AuthenticationResult"]["IdToken"]
-        }
-    except client.exceptions.NotAuthorizedException as e:
-        logger.error(f"NotAuthorizedException - {e}")
+
+        access_token = auth_response["AuthenticationResult"]["AccessToken"]
+        refresh_token = auth_response["AuthenticationResult"]["RefreshToken"]
+
+        # ✅ Retrieve `sub` from Cognito
+        user_response = client.get_user(AccessToken=access_token)
+        sub = next((attr["Value"] for attr in user_response["UserAttributes"] if attr["Name"] == "sub"), None)
+
+        # ✅ Store `access_token` in an HTTP-only cookie
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=True,
+            samesite="Lax"
+        )
+
+        # ✅ Store `refresh_token` in an HTTP-only cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="Lax"
+        )
+
+        # ✅ Store `sub` in a readable cookie for frontend use
+        response.set_cookie(
+            key="cognito_sub",
+            value=sub,
+            httponly=False,
+            secure=True,
+            samesite="Lax"
+        )
+
+        return {"message": "Login successful"}
+
+    except client.exceptions.NotAuthorizedException:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
-    except client.exceptions.UserNotFoundException as e:
-        logger.error(f"UserNotFoundException - {e}")
+    except client.exceptions.UserNotFoundException:
         raise HTTPException(status_code=404, detail="User does not exist")
     except Exception as e:
-        logger.error(f"Unexpected Error - {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/signup")
@@ -284,6 +336,110 @@ def resend_confirmation(request: ResendConfirmationRequest):
     except Exception as e:
         logger.error(f"Error during resend confirmation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+from fastapi import Depends, HTTPException, Header
+import boto3
+
+### ✅ UPDATED GET USER PROFILE: Extract Access Token from Cookies ###
+@app.get("/api/user-profile")
+def get_user_profile(request: Request):
+    access_token = request.cookies.get("access_token")  # ✅ Extract access token from cookies
+
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Unauthorized: No access token found.")
+
+    try:
+        client = boto3.client('cognito-idp', region_name=COGNITO_REGION)
+        response = client.get_user(AccessToken=access_token)
+
+        user_attributes = {attr["Name"]: attr["Value"] for attr in response["UserAttributes"]}
+        return {
+            "sub": user_attributes.get("sub"),
+            "name": user_attributes.get("name"),
+            "email": user_attributes.get("email"),
+            "phone_number": user_attributes.get("phone_number"),
+            "birthdate": user_attributes.get("birthdate"),
+            "family_name": user_attributes.get("family_name"),
+            "middle_name": user_attributes.get("middle_name"),
+        }
+
+    except client.exceptions.NotAuthorizedException:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+### ✅ NEW ROUTE: Refresh Access Token from Refresh Token Cookie ###
+@app.post("/api/refresh")
+def refresh_access_token(response: Response, refresh_token: str = Cookie(None)):
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="No refresh token found")
+
+    try:
+        refresh_response = client.initiate_auth(
+            AuthFlow="REFRESH_TOKEN_AUTH",
+            AuthParameters={"REFRESH_TOKEN": refresh_token},
+            ClientId=COGNITO_CLIENT_ID
+        )
+
+        new_access_token = refresh_response["AuthenticationResult"]["AccessToken"]
+
+        # ✅ Update the access token cookie
+        response.set_cookie(
+            key="access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=True,
+            samesite="Lax"
+        )
+
+        return {"message": "Token refreshed"}
+
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+### ✅ NEW ROUTE: Logout and Clear Cookies ###
+@app.post("/api/logout")
+def logout(response: Response):
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    response.delete_cookie("cognito_sub")
+    return {"message": "Logged out successfully"}
+
+# @app.get("/api/user-profile")
+# def get_user_profile(Authorization: str = Header(None)):
+#     """
+#     Fetch user attributes from Cognito
+#     """
+#     if not Authorization:
+#         raise HTTPException(status_code=401, detail="Authorization token is required")
+
+#     try:
+#         # Extract access token from the header
+#         access_token = Authorization.split(" ")[1]  # Expecting "Bearer <token>"
+
+#         # Call Cognito to get user attributes
+#         client = boto3.client('cognito-idp', region_name=COGNITO_REGION)
+#         response = client.get_user(AccessToken=access_token)
+
+#         # Parse the response
+#         user_attributes = {attr["Name"]: attr["Value"] for attr in response["UserAttributes"]}
+
+#         return {
+#             "username": user_attributes.get("username", ""),
+#             "email": user_attributes.get("email", ""),
+#             "phone_number": user_attributes.get("phone_number", ""),
+#             "name": user_attributes.get("name", ""),
+#             "birthdate": user_attributes.get("birthdate", ""),
+#             "family_name": user_attributes.get("family_name", ""),
+#             "middle_name": user_attributes.get("middle_name", ""),
+#         }
+
+#     except client.exceptions.NotAuthorizedException:
+#         raise HTTPException(status_code=401, detail="Invalid token or session expired")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/my-events")
 def get_my_events(

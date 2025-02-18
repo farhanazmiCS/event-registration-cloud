@@ -15,7 +15,7 @@ export interface Event {
   // Fetch events from the FastAPI backend
   export const fetchEvents = async (): Promise<Event[]> => {
     try {
-      const response = await fetch("http://localhost:8080/events");
+      const response = await fetch("http://localhost:8000/events");
   
       // Check if the response is successful
       if (!response.ok) {
