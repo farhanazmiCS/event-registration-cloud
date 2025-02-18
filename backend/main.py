@@ -129,23 +129,36 @@ class EventCreate(BaseModel):
 
 @app.post("/events")
 def create_event(request: Request, event: EventCreate, db: Session = Depends(get_db)):
-    logger.info(f"POST {request.url} - Creating event: {event.title}")
+    print(f"fuck:{request.cookies}")
+    user_sub = request.cookies.get("cognito_sub") # ✅ Extract user_sub from cookies
+
+    if not user_sub:
+        logger.warning(f"POST {request.url} - Unauthorized attempt to create event (missing user_sub)")
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
+
+    logger.info(f"POST {request.url} - Creating event: {event.title} by user {user_sub}")
+
     try:
         query = text("""
             INSERT INTO events (title, description, location, start_time, end_time, price, max_attendees, organizer_cognito_sub, created_at) 
-            VALUES (:title, :description, :location, :start_time, :end_time, :price, :max_attendees, :organizer_cognito_sub, NOW())
+            VALUES (:title, :description, :location, :start_time, :end_time, :price, :max_attendees, :user_sub, NOW())
             RETURNING id
         """)
 
-        result = db.execute(query, event.dict())
+        params = {**event.dict(), "user_sub": user_sub}
+        logger.info(f"Executing query: {query} with params: {params}")
+
+        result = db.execute(query, params)
         db.commit()
 
         event_id = result.scalar()
         logger.info(f"POST {request.url} - Event {event_id} created successfully")
         return {"message": "Event created successfully", "event_id": event_id}
+
     except Exception as e:
         logger.error(f"POST {request.url} - Error creating event: {e}")
         raise HTTPException(status_code=500, detail="Failed to create event")
+
     
 
 @app.get("/events/{event_id}")
@@ -241,7 +254,7 @@ def login(request: LoginRequest, response: Response):
             key="cognito_sub",
             value=sub,
             httponly=False,
-            secure=True,
+            secure=False,
             samesite="Lax"
         )
 
@@ -289,11 +302,12 @@ def signup(request: SignupRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/confirm-signup")
-def confirm_signup(request: ConfirmSignupRequest):
+def confirm_signup(request: ConfirmSignupRequest, db: Session = Depends(get_db)):
     try:
         logger.info(f"Attempting to confirm signup for username: {request.username}")
         secret_hash = get_secret_hash(request.username) if COGNITO_CLIENT_SECRET else None
 
+        # ✅ Confirm user in Cognito
         client.confirm_sign_up(
             ClientId=COGNITO_CLIENT_ID,
             Username=request.username,
@@ -301,8 +315,34 @@ def confirm_signup(request: ConfirmSignupRequest):
             SecretHash=secret_hash,
         )
 
-        logger.info(f"Account for {request.username} successfully confirmed.")
-        return {"message": "Account successfully confirmed. You can now log in."}
+        # ✅ Fetch user attributes from Cognito to get `sub`
+        user_response = client.admin_get_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=request.username
+        )
+
+        # ✅ Extract attributes
+        user_attributes = {attr["Name"]: attr["Value"] for attr in user_response["UserAttributes"]}
+        cognito_sub = user_attributes.get("sub")
+        email = user_attributes.get("email")
+        name = user_attributes.get("name")
+
+        # ✅ Insert the user into the `users` table
+        insert_query = text("""
+            INSERT INTO users (cognito_sub, name, email, created_at)
+            VALUES (:cognito_sub, :name, :email, NOW())
+        """)
+
+        db.execute(insert_query, {
+            "cognito_sub": cognito_sub,
+            "name": name,
+            "email": email
+        })
+        db.commit()
+
+        logger.info(f"User {cognito_sub} successfully added to users table.")
+
+        return {"message": "Account successfully confirmed and added to database."}
 
     except client.exceptions.NotAuthorizedException:
         logger.error(f"User {request.username} is already confirmed.")
@@ -319,6 +359,7 @@ def confirm_signup(request: ConfirmSignupRequest):
     except Exception as e:
         logger.error(f"Unexpected error during confirmation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.post("/api/resend-confirmation")
@@ -478,26 +519,40 @@ def get_my_events(
         logger.error(f"GET {request.url} - Error fetching user events: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch user events")
 
+from fastapi import Cookie, Request, HTTPException
+
 @app.get("/createdevents")
-def get_created_events(
-    request: Request,
-    db: Session = Depends(get_db),
-    user_sub: str = Cookie(None)  # ✅ Get user_sub from cookies
-):
+def get_created_events(request: Request, db: Session = Depends(get_db)):
+    user_sub = request.cookies.get("cognito_sub")  # ✅ Read manually from request cookies
+    print(f"Here:${user_sub}")
+
+    logger.info(f"GET {request.url} - All received cookies: {request.cookies}")  # ✅ Debugging log
+    logger.info(f"GET {request.url} - Extracted user_sub: {user_sub}")  # ✅ Verify extracted sub
+
     if not user_sub:
         logger.warning(f"GET {request.url} - Unauthorized access: Missing cognito_sub cookie")
         raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
 
+    print("Working")
     logger.info(f"GET {request.url} - Fetching events created by user {user_sub}")
+
     try:
         query = text("SELECT * FROM events WHERE organizer_cognito_sub = :user_sub ORDER BY start_time ASC")
+
+        params = {"user_sub": user_sub}  # ✅ Ensure user_sub is mapped correctly
+
+        print(f"Executing query: {query} with params: {params}")  # ✅ Debugging log
+
         result = db.execute(query, {"user_sub": user_sub}).mappings().all()
+
         
         logger.info(f"GET {request.url} - Retrieved {len(result)} events created by {user_sub}")
         return {"events": result}
     except Exception as e:
         logger.error(f"GET {request.url} - Error fetching created events: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch created events")
+
+
 
 @app.put("/events/{event_id}")
 def update_event(request: Request, event_id: int, event: EventCreate, db: Session = Depends(get_db)):

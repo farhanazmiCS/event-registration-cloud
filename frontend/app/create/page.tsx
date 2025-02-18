@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie"; // ✅ Import js-cookie to read cookies
 
 export default function CreateEvent() {
   const router = useRouter();
@@ -16,8 +17,19 @@ export default function CreateEvent() {
     end_time: "",
     price: 0,
     max_attendees: 0,
-    organizer_cognito_sub: "org-12345", // Placeholder, replace with actual user info if needed
+    organizer_cognito_sub: "", // ✅ Leave empty initially
   });
+
+  // ✅ Retrieve cognito_sub from cookies on page load
+  useEffect(() => {
+    const userSub = Cookies.get("cognito_sub");
+    if (userSub) {
+      setFormData((prevData) => ({
+        ...prevData,
+        organizer_cognito_sub: userSub,
+      }));
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -26,14 +38,21 @@ export default function CreateEvent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
+    // ✅ Ensure `organizer_cognito_sub` is set
+    if (!formData.organizer_cognito_sub) {
+      console.error("Error: Organizer Cognito Sub is missing.");
+      return;
+    }
+  
     try {
       const response = await fetch("http://localhost:8000/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // ✅ Ensures cookies are sent
         body: JSON.stringify(formData),
       });
-
+  
       if (response.ok) {
         router.push("/"); // Redirect to homepage after successful creation
       } else {
@@ -43,6 +62,7 @@ export default function CreateEvent() {
       console.error("Error:", error);
     }
   };
+  
 
   return (
     <div className="max-w-4xl mx-auto p-4">
