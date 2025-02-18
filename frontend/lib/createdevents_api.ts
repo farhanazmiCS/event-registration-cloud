@@ -57,7 +57,7 @@ export const deleteEvent = async (eventId: number) => {
 
 export const fetchEventById = async (eventId: string): Promise<Event | null> => {
   try {
-    const response = await fetch(`http://localhost:8080/events/${eventId}`, {
+    const response = await fetch(`http://localhost:8000/events/${eventId}`, {
       method: "GET",
       credentials: "include", // ✅ Ensures cookies are sent with request
     });

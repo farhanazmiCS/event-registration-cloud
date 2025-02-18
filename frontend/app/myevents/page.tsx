@@ -6,16 +6,16 @@ import EventCard from "../components/EventCard";
 
 import { Event } from "../../lib/event_api"; // Reuse the Event interface
 
-export default function MyEvents({ userSub = "org-12345" }) {
+export default function MyEvents({}) {
   const [myEvents, setMyEvents] = useState<Event[]>([]);
 
   useEffect(() => {
-    fetchMyEvents(userSub).then(setMyEvents);
-  }, [userSub]);
+    fetchMyEvents().then(setMyEvents);
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto p-4">
-      <h1 className="text-4xl font-bold mb-8">Registered Events for {userSub}</h1>
+      <h1 className="text-4xl font-bold mb-8">Registered Events</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {myEvents.length === 0 ? (

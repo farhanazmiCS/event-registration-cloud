@@ -129,7 +129,6 @@ class EventCreate(BaseModel):
 
 @app.post("/events")
 def create_event(request: Request, event: EventCreate, db: Session = Depends(get_db)):
-    print(f"fuck:{request.cookies}")
     user_sub = request.cookies.get("cognito_sub") # ✅ Extract user_sub from cookies
 
     if not user_sub:
@@ -302,12 +301,11 @@ def signup(request: SignupRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/confirm-signup")
-def confirm_signup(request: ConfirmSignupRequest, db: Session = Depends(get_db)):
+def confirm_signup(request: ConfirmSignupRequest):
     try:
         logger.info(f"Attempting to confirm signup for username: {request.username}")
         secret_hash = get_secret_hash(request.username) if COGNITO_CLIENT_SECRET else None
 
-        # ✅ Confirm user in Cognito
         client.confirm_sign_up(
             ClientId=COGNITO_CLIENT_ID,
             Username=request.username,
@@ -315,34 +313,8 @@ def confirm_signup(request: ConfirmSignupRequest, db: Session = Depends(get_db))
             SecretHash=secret_hash,
         )
 
-        # ✅ Fetch user attributes from Cognito to get `sub`
-        user_response = client.admin_get_user(
-            UserPoolId=COGNITO_USER_POOL_ID,
-            Username=request.username
-        )
-
-        # ✅ Extract attributes
-        user_attributes = {attr["Name"]: attr["Value"] for attr in user_response["UserAttributes"]}
-        cognito_sub = user_attributes.get("sub")
-        email = user_attributes.get("email")
-        name = user_attributes.get("name")
-
-        # ✅ Insert the user into the `users` table
-        insert_query = text("""
-            INSERT INTO users (cognito_sub, name, email, created_at)
-            VALUES (:cognito_sub, :name, :email, NOW())
-        """)
-
-        db.execute(insert_query, {
-            "cognito_sub": cognito_sub,
-            "name": name,
-            "email": email
-        })
-        db.commit()
-
-        logger.info(f"User {cognito_sub} successfully added to users table.")
-
-        return {"message": "Account successfully confirmed and added to database."}
+        logger.info(f"Account for {request.username} successfully confirmed.")
+        return {"message": "Account successfully confirmed. You can now log in."}
 
     except client.exceptions.NotAuthorizedException:
         logger.error(f"User {request.username} is already confirmed.")
@@ -489,37 +461,43 @@ def logout(response: Response):
 
 
 @app.get("/my-events")
-def get_my_events(
-    request: Request,
-    db: Session = Depends(get_db),
-    user_sub: str = Cookie(None)  # ✅ Get user_sub from cookies
-):
+def get_my_events(request: Request, db: Session = Depends(get_db)):
+    # ✅ Read user_sub from request cookies
+    user_sub = request.cookies.get("cognito_sub")
+    print(f"my-events sub from cookies: {user_sub}")
+
+    logger.info(f"GET {request.url} - All received cookies: {request.cookies}")  # ✅ Debugging log
+    logger.info(f"GET {request.url} - Extracted user_sub: {user_sub}")  # ✅ Verify extracted sub
+
     if not user_sub:
         logger.warning(f"GET {request.url} - Unauthorized access: Missing cognito_sub cookie")
         raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
 
     logger.info(f"GET {request.url} - Fetching events for user {user_sub}")
+    print(f"my-events sub working")
 
     try:
         query = text("""
             SELECT e.*
             FROM events e
             JOIN registrations r ON e.id = r.event_id
-            WHERE r.user_cognito_sub = :user_cognito_sub
+            WHERE r.user_cognito_sub = :user_sub
             ORDER BY e.start_time ASC;
         """)
 
-        result = db.execute(query, {"user_cognito_sub": user_sub})
-        my_events = result.mappings().all()
+        params = {"user_sub": user_sub}  # ✅ Ensure user_sub is mapped correctly
+        logger.info(f"Executing query: {query} with params: {params}")  # ✅ Debugging log
 
-        logger.info(f"GET {request.url} - Retrieved {len(my_events)} events for user {user_sub}")
-        return {"events": my_events}
+        result = db.execute(query, params).mappings().all()
+
+        logger.info(f"GET {request.url} - Retrieved {len(result)} events for user {user_sub}")
+        return {"events": result}
 
     except Exception as e:
         logger.error(f"GET {request.url} - Error fetching user events: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch user events")
 
-from fastapi import Cookie, Request, HTTPException
+
 
 @app.get("/createdevents")
 def get_created_events(request: Request, db: Session = Depends(get_db)):
@@ -556,17 +534,32 @@ def get_created_events(request: Request, db: Session = Depends(get_db)):
 
 @app.put("/events/{event_id}")
 def update_event(request: Request, event_id: int, event: EventCreate, db: Session = Depends(get_db)):
-    logger.info(f"PUT {request.url} - Updating event {event_id}")
+    # ✅ Read user_sub from request cookies
+    user_sub = request.cookies.get("cognito_sub")
+    print(f"User sub from cookies: {user_sub}")
+
+    logger.info(f"PUT {request.url} - All received cookies: {request.cookies}")  # ✅ Debugging log
+    logger.info(f"PUT {request.url} - Extracted user_sub: {user_sub}")  # ✅ Verify extracted sub
+
+    if not user_sub:
+        logger.warning(f"PUT {request.url} - Unauthorized access: Missing cognito_sub cookie")
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
+
+    logger.info(f"PUT {request.url} - Updating event {event_id} by user {user_sub}")
+
     try:
         query = text("""
             UPDATE events
             SET title = :title, description = :description, location = :location, 
                 start_time = :start_time, end_time = :end_time, price = :price, 
                 max_attendees = :max_attendees
-            WHERE id = :event_id AND organizer_cognito_sub = :organizer_cognito_sub
+            WHERE id = :event_id AND organizer_cognito_sub = :user_sub
         """)
 
-        result = db.execute(query, {**event.dict(), "event_id": event_id})
+        params = {**event.dict(), "event_id": event_id, "user_sub": user_sub}  # ✅ Ensure user_sub is mapped correctly
+        logger.info(f"Executing query: {query} with params: {params}")  # ✅ Debugging log
+
+        result = db.execute(query, params)
         db.commit()
 
         if result.rowcount == 0:
@@ -579,15 +572,16 @@ def update_event(request: Request, event_id: int, event: EventCreate, db: Sessio
         logger.error(f"PUT {request.url} - Error updating event {event_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update event")
 
-from fastapi import Cookie, Request, HTTPException
 
 @app.delete("/events/{event_id}")
-def delete_event(
-    request: Request, 
-    event_id: int, 
-    db: Session = Depends(get_db), 
-    user_sub: str = Cookie(None)  # ✅ Get user_sub from cookies
-):
+def delete_event(request: Request, event_id: int, db: Session = Depends(get_db)):
+    # ✅ Read user_sub from request cookies
+    user_sub = request.cookies.get("cognito_sub")
+    print(f"User sub from cookies: {user_sub}")
+
+    logger.info(f"DELETE {request.url} - All received cookies: {request.cookies}")  # ✅ Debugging log
+    logger.info(f"DELETE {request.url} - Extracted user_sub: {user_sub}")  # ✅ Verify extracted sub
+
     if not user_sub:
         logger.warning(f"DELETE {request.url} - Unauthorized access: Missing cognito_sub cookie")
         raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
@@ -596,7 +590,11 @@ def delete_event(
 
     try:
         query = text("DELETE FROM events WHERE id = :event_id AND organizer_cognito_sub = :user_sub")
-        result = db.execute(query, {"event_id": event_id, "user_sub": user_sub})
+
+        params = {"event_id": event_id, "user_sub": user_sub}  # ✅ Ensure user_sub is mapped correctly
+        logger.info(f"Executing query: {query} with params: {params}")  # ✅ Debugging log
+
+        result = db.execute(query, params)
         db.commit()
 
         if result.rowcount == 0:
@@ -609,6 +607,7 @@ def delete_event(
     except Exception as e:
         logger.error(f"DELETE {request.url} - Error deleting event {event_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete event")
+
 
 
 @app.get("/health")

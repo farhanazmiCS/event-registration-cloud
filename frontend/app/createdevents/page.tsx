@@ -10,10 +10,9 @@ import { Event } from "../../lib/event_api";
 export default function CreatedEvents() {
     const [events, setEvents] = useState<Event[]>([]);
     const router = useRouter();
-    const userSub = "org-12345"; // Hardcoded for now
 
     useEffect(() => {
-        fetchCreatedEvents(userSub).then(setEvents);
+        fetchCreatedEvents().then(setEvents);
     }, []);
 
     const handleDelete = async (eventId: number) => {
