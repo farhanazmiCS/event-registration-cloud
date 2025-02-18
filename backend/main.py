@@ -158,7 +158,12 @@ def get_event(request: Request, event_id: int, db: Session = Depends(get_db)):
             logger.warning(f"GET {request.url} - Event {event_id} not found")
             raise HTTPException(status_code=404, detail="Event not found")
 
-    return dict(result)
+        return dict(result)  # ✅ Move this inside the try block
+
+    except Exception as e:
+        logger.error(f"Error fetching event {event_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 
 
 # @app.post("/api/login")
