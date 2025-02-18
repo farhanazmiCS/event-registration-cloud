@@ -1,6 +1,3 @@
-"use client"
-
-
 "use client";
 
 import Link from "next/link";
@@ -66,15 +63,7 @@ export default function Header() {
           <Link href="/create" className="text-gray-600 hover:text-primary">
             Create Event
           </Link>
-          <>
-              <Link href="/myevents" className="text-gray-600 hover:text-primary">
-                My Events
-              </Link>
-              <Link href="/createdevents" className="text-gray-600 hover:text-primary">
-                Created Events
-              </Link>
-            </>
-          {/* {isLoggedIn && (
+          {isLoggedIn && (
             <>
               <Link href="/myevents" className="text-gray-600 hover:text-primary">
                 My Events
@@ -83,7 +72,7 @@ export default function Header() {
                 Created Events
               </Link>
             </>
-          )} */}
+          )} 
            
           {isLoggedIn && (
             <Link href="/profile" className="text-gray-600 hover:text-primary flex items-center">

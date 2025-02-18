@@ -3,9 +3,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
-load_dotenv()
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-DATABASE_URL = os.getenv('DATABASE_URL')
+# Load .env file from the parent directory
+dotenv_path = os.path.join(BASE_DIR, ".env")
+print(f"db.py path ${dotenv_path}")
+load_dotenv(dotenv_path=dotenv_path)
+
+# Debugging: Print the DATABASE_URL to confirm it's loaded
+DATABASE_URL = os.getenv("DATA13ASE_URL")
+print("Using DATABASE_URL:", DATABASE_URL)
 
 engine = create_engine(DATABASE_URL)
 

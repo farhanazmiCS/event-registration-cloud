@@ -105,6 +105,7 @@ def get_users(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/events")
 def get_events(request: Request, db: Session = Depends(get_db)):
+    print(request)
     logger.info(f"GET {request.url} - Fetching all events")
     try:
         result = db.execute(text("SELECT * FROM events ORDER BY start_time ASC;"))
@@ -449,10 +450,15 @@ def logout(response: Response):
 @app.get("/my-events")
 def get_my_events(
     request: Request,
-    user_sub: str = Query("org-12345", description="User Cognito Sub (Default: Alice Johnson)"),
     db: Session = Depends(get_db),
+    user_sub: str = Cookie(None)  # ✅ Get user_sub from cookies
 ):
+    if not user_sub:
+        logger.warning(f"GET {request.url} - Unauthorized access: Missing cognito_sub cookie")
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
+
     logger.info(f"GET {request.url} - Fetching events for user {user_sub}")
+
     try:
         query = text("""
             SELECT e.*
@@ -467,17 +473,21 @@ def get_my_events(
 
         logger.info(f"GET {request.url} - Retrieved {len(my_events)} events for user {user_sub}")
         return {"events": my_events}
+
     except Exception as e:
         logger.error(f"GET {request.url} - Error fetching user events: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch user events")
 
-
 @app.get("/createdevents")
 def get_created_events(
     request: Request,
-    user_sub: str = Query("org-12345", description="User Cognito Sub (Default: Alice Johnson)"),
     db: Session = Depends(get_db),
+    user_sub: str = Cookie(None)  # ✅ Get user_sub from cookies
 ):
+    if not user_sub:
+        logger.warning(f"GET {request.url} - Unauthorized access: Missing cognito_sub cookie")
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
+
     logger.info(f"GET {request.url} - Fetching events created by user {user_sub}")
     try:
         query = text("SELECT * FROM events WHERE organizer_cognito_sub = :user_sub ORDER BY start_time ASC")
@@ -514,12 +524,23 @@ def update_event(request: Request, event_id: int, event: EventCreate, db: Sessio
         logger.error(f"PUT {request.url} - Error updating event {event_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update event")
 
+from fastapi import Cookie, Request, HTTPException
+
 @app.delete("/events/{event_id}")
-def delete_event(request: Request, event_id: int, user_sub: str = Query("org-12345"), db: Session = Depends(get_db)):
+def delete_event(
+    request: Request, 
+    event_id: int, 
+    db: Session = Depends(get_db), 
+    user_sub: str = Cookie(None)  # ✅ Get user_sub from cookies
+):
+    if not user_sub:
+        logger.warning(f"DELETE {request.url} - Unauthorized access: Missing cognito_sub cookie")
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
+
     logger.info(f"DELETE {request.url} - Deleting event {event_id} by user {user_sub}")
+
     try:
         query = text("DELETE FROM events WHERE id = :event_id AND organizer_cognito_sub = :user_sub")
-
         result = db.execute(query, {"event_id": event_id, "user_sub": user_sub})
         db.commit()
 
@@ -529,9 +550,11 @@ def delete_event(request: Request, event_id: int, user_sub: str = Query("org-123
 
         logger.info(f"DELETE {request.url} - Event {event_id} deleted successfully")
         return {"message": "Event deleted successfully"}
+
     except Exception as e:
         logger.error(f"DELETE {request.url} - Error deleting event {event_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete event")
+
 
 @app.get("/health")
 def health_check():
