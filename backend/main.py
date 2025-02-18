@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -93,16 +93,28 @@ def read_root():
     return {"message": "FastAPI is connected to RDS via SSH tunnel!"}
 
 @app.get("/users")
-def get_users(db: Session = Depends(get_db)):
-    result = db.execute(text("SELECT * FROM users;"))
-    users = result.fetchall()
-    return {"users": [dict(row) for row in users]}
+def get_users(request: Request, db: Session = Depends(get_db)):
+    logger.info(f"GET {request.url} - Fetching all users")
+    try:
+        result = db.execute(text("SELECT * FROM users;"))
+        users = result.fetchall()
+        logger.info(f"GET {request.url} - Retrieved {len(users)} users")
+        return {"users": [dict(row) for row in users]}
+    except Exception as e:
+        logger.error(f"GET {request.url} - Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch users")
 
 @app.get("/events")
-def get_events(db: Session = Depends(get_db)):
-    result = db.execute(text("SELECT * FROM events ORDER BY start_time ASC;"))
-    events = result.mappings().all()  # Use .mappings() to return rows as dictionaries
-    return {"events": events}
+def get_events(request: Request, db: Session = Depends(get_db)):
+    logger.info(f"GET {request.url} - Fetching all events")
+    try:
+        result = db.execute(text("SELECT * FROM events ORDER BY start_time ASC;"))
+        events = result.mappings().all()
+        logger.info(f"GET {request.url} - Retrieved {len(events)} events")
+        return {"events": events}
+    except Exception as e:
+        logger.error(f"GET {request.url} - Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch events")
 
 # Define a request model for event creation
 class EventCreate(BaseModel):
@@ -116,27 +128,42 @@ class EventCreate(BaseModel):
     organizer_cognito_sub: str
 
 @app.post("/events")
-def create_event(event: EventCreate, db: Session = Depends(get_db)):
-    query = text("""
-        INSERT INTO events (title, description, location, start_time, end_time, price, max_attendees, organizer_cognito_sub, created_at) 
-        VALUES (:title, :description, :location, :start_time, :end_time, :price, :max_attendees, :organizer_cognito_sub, NOW())
-        RETURNING id
-    """)
+def create_event(request: Request, event: EventCreate, db: Session = Depends(get_db)):
+    logger.info(f"POST {request.url} - Creating event: {event.title}")
+    try:
+        query = text("""
+            INSERT INTO events (title, description, location, start_time, end_time, price, max_attendees, organizer_cognito_sub, created_at) 
+            VALUES (:title, :description, :location, :start_time, :end_time, :price, :max_attendees, :organizer_cognito_sub, NOW())
+            RETURNING id
+        """)
 
-    result = db.execute(query, event.dict())
-    db.commit()
+        result = db.execute(query, event.dict())
+        db.commit()
 
-    return {"message": "Event created successfully", "event_id": result.scalar()}
+        event_id = result.scalar()
+        logger.info(f"POST {request.url} - Event {event_id} created successfully")
+        return {"message": "Event created successfully", "event_id": event_id}
+    except Exception as e:
+        logger.error(f"POST {request.url} - Error creating event: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create event")
+    
 
 @app.get("/events/{event_id}")
-def get_event(event_id: int, db: Session = Depends(get_db)):
-    query = text("SELECT * FROM events WHERE id = :event_id")
-    result = db.execute(query, {"event_id": event_id}).mappings().first()
+def get_event(request: Request, event_id: int, db: Session = Depends(get_db)):
+    logger.info(f"GET {request.url} - Fetching event ID: {event_id}")
+    try:
+        query = text("SELECT * FROM events WHERE id = :event_id")
+        result = db.execute(query, {"event_id": event_id}).mappings().first()
 
-    if not result:
-        raise HTTPException(status_code=404, detail="Event not found")
+        if not result:
+            logger.warning(f"GET {request.url} - Event {event_id} not found")
+            raise HTTPException(status_code=404, detail="Event not found")
 
-    return dict(result)
+        logger.info(f"GET {request.url} - Successfully fetched event {event_id}")
+        return dict(result)
+    except Exception as e:
+        logger.error(f"GET {request.url} - Error fetching event {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch event")
 
 
 @app.post("/api/login")
@@ -260,62 +287,90 @@ def resend_confirmation(request: ResendConfirmationRequest):
 
 @app.get("/my-events")
 def get_my_events(
+    request: Request,
+    user_sub: str = Query("org-12345", description="User Cognito Sub (Default: Alice Johnson)"),
     db: Session = Depends(get_db),
-    user_sub: str = Query("org-12345", description="User Cognito Sub (Default: Alice Johnson)")
 ):
-    query = text("""
-        SELECT e.*
-        FROM events e
-        JOIN registrations r ON e.id = r.event_id
-        WHERE r.user_cognito_sub = :user_cognito_sub
-        ORDER BY e.start_time ASC;
-    """)
+    logger.info(f"GET {request.url} - Fetching events for user {user_sub}")
+    try:
+        query = text("""
+            SELECT e.*
+            FROM events e
+            JOIN registrations r ON e.id = r.event_id
+            WHERE r.user_cognito_sub = :user_cognito_sub
+            ORDER BY e.start_time ASC;
+        """)
 
-    result = db.execute(query, {"user_cognito_sub": user_sub})
-    my_events = result.mappings().all()
+        result = db.execute(query, {"user_cognito_sub": user_sub})
+        my_events = result.mappings().all()
 
-    return {"events": my_events}
+        logger.info(f"GET {request.url} - Retrieved {len(my_events)} events for user {user_sub}")
+        return {"events": my_events}
+    except Exception as e:
+        logger.error(f"GET {request.url} - Error fetching user events: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch user events")
 
 
 @app.get("/createdevents")
 def get_created_events(
+    request: Request,
     user_sub: str = Query("org-12345", description="User Cognito Sub (Default: Alice Johnson)"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    query = text("SELECT * FROM events WHERE organizer_cognito_sub = :user_sub ORDER BY start_time ASC")
-    result = db.execute(query, {"user_sub": user_sub}).mappings().all()
-    
-    return {"events": result}
+    logger.info(f"GET {request.url} - Fetching events created by user {user_sub}")
+    try:
+        query = text("SELECT * FROM events WHERE organizer_cognito_sub = :user_sub ORDER BY start_time ASC")
+        result = db.execute(query, {"user_sub": user_sub}).mappings().all()
+        
+        logger.info(f"GET {request.url} - Retrieved {len(result)} events created by {user_sub}")
+        return {"events": result}
+    except Exception as e:
+        logger.error(f"GET {request.url} - Error fetching created events: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch created events")
 
 @app.put("/events/{event_id}")
-def update_event(event_id: int, event: EventCreate, db: Session = Depends(get_db)):
-    query = text("""
-        UPDATE events
-        SET title = :title, description = :description, location = :location, 
-            start_time = :start_time, end_time = :end_time, price = :price, 
-            max_attendees = :max_attendees
-        WHERE id = :event_id AND organizer_cognito_sub = :organizer_cognito_sub
-    """)
+def update_event(request: Request, event_id: int, event: EventCreate, db: Session = Depends(get_db)):
+    logger.info(f"PUT {request.url} - Updating event {event_id}")
+    try:
+        query = text("""
+            UPDATE events
+            SET title = :title, description = :description, location = :location, 
+                start_time = :start_time, end_time = :end_time, price = :price, 
+                max_attendees = :max_attendees
+            WHERE id = :event_id AND organizer_cognito_sub = :organizer_cognito_sub
+        """)
 
-    result = db.execute(query, {**event.dict(), "event_id": event_id})
-    db.commit()
+        result = db.execute(query, {**event.dict(), "event_id": event_id})
+        db.commit()
 
-    if result.rowcount == 0:
-        raise HTTPException(status_code=403, detail="Not allowed to update this event")
+        if result.rowcount == 0:
+            logger.warning(f"PUT {request.url} - Unauthorized event update attempt for {event_id}")
+            raise HTTPException(status_code=403, detail="Not allowed to update this event")
 
-    return {"message": "Event updated successfully"}
+        logger.info(f"PUT {request.url} - Event {event_id} updated successfully")
+        return {"message": "Event updated successfully"}
+    except Exception as e:
+        logger.error(f"PUT {request.url} - Error updating event {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update event")
 
 @app.delete("/events/{event_id}")
-def delete_event(event_id: int, user_sub: str = Query("org-12345"), db: Session = Depends(get_db)):
-    query = text("DELETE FROM events WHERE id = :event_id AND organizer_cognito_sub = :user_sub")
+def delete_event(request: Request, event_id: int, user_sub: str = Query("org-12345"), db: Session = Depends(get_db)):
+    logger.info(f"DELETE {request.url} - Deleting event {event_id} by user {user_sub}")
+    try:
+        query = text("DELETE FROM events WHERE id = :event_id AND organizer_cognito_sub = :user_sub")
 
-    result = db.execute(query, {"event_id": event_id, "user_sub": user_sub})
-    db.commit()
+        result = db.execute(query, {"event_id": event_id, "user_sub": user_sub})
+        db.commit()
 
-    if result.rowcount == 0:
-        raise HTTPException(status_code=403, detail="Not allowed to delete this event")
+        if result.rowcount == 0:
+            logger.warning(f"DELETE {request.url} - Unauthorized delete attempt for event {event_id}")
+            raise HTTPException(status_code=403, detail="Not allowed to delete this event")
 
-    return {"message": "Event deleted successfully"}
+        logger.info(f"DELETE {request.url} - Event {event_id} deleted successfully")
+        return {"message": "Event deleted successfully"}
+    except Exception as e:
+        logger.error(f"DELETE {request.url} - Error deleting event {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete event")
 
 @app.get("/health")
 def health_check():
