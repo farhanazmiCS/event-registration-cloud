@@ -19,7 +19,7 @@ load_dotenv()  # Load AWS credentials from .env
 # Retrieve the values AFTER loading dotenv
 COGNITO_CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
 COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
-AWS_REGION = os.getenv("AWS_REGION")
+COGNITO_REGION = os.getenv("COGNITO_REGION")
 COGNITO_CLIENT_SECRET = os.getenv("COGNITO_CLIENT_SECRET")
 
 
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # Print to verify environment variables
 print(f"COGNITO_CLIENT_ID: {COGNITO_CLIENT_ID}")
 print(f"COGNITO_USER_POOL_ID: {COGNITO_USER_POOL_ID}")
-print(f"AWS_REGION: {AWS_REGION}")
+print(f"COGNITO_REGION: {COGNITO_REGION}")
 print(f"COGNITO_CLIENT_SECRET: {COGNITO_CLIENT_SECRET}")
 
 app = FastAPI()
@@ -66,7 +66,7 @@ class LoginRequest(BaseModel):
     password: str
 
 # Initialize Cognito client
-client = boto3.client('cognito-idp', region_name=AWS_REGION)
+client = boto3.client('cognito-idp', region_name=COGNITO_REGION)
 
 def validate_phone_number(phone_number: str):
     """Ensure phone number is in E.164 format (+[country code][number])"""
