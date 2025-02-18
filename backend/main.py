@@ -316,3 +316,7 @@ def delete_event(event_id: int, user_sub: str = Query("org-12345"), db: Session 
         raise HTTPException(status_code=403, detail="Not allowed to delete this event")
 
     return {"message": "Event deleted successfully"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
