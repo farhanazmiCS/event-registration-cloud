@@ -63,6 +63,9 @@ class ConfirmSignupRequest(BaseModel):
 class ResendConfirmationRequest(BaseModel):
     username: str
 
+class ForgotPasswordRequest(BaseModel):
+    username: str
+
 # Define a request model for event creation
 class EventCreate(BaseModel):
     title: str
@@ -77,6 +80,17 @@ class EventCreate(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+# Confirm New Password
+class ConfirmPasswordRequest(BaseModel):
+    username: str
+    confirmation_code: str
+    new_password: str
+
+class ConfirmForgotPasswordRequest(BaseModel):
+    email: str
+    confirmation_code: str
+    new_password: str
 
 class PaymentRequest(BaseModel):
     event_id: int
@@ -172,8 +186,7 @@ def create_event(request: Request, event: EventCreate, db: Session = Depends(get
     except Exception as e:
         logger.error(f"POST {request.url} - Error creating event: {e}")
         raise HTTPException(status_code=500, detail="Failed to create event")
-
-    
+ 
 @app.get("/events/{event_id}")
 def get_event(request: Request, event_id: int, db: Session = Depends(get_db)):
     logger.info(f"GET {request.url} - Fetching event ID: {event_id}")
@@ -342,28 +355,85 @@ def confirm_signup(request: ConfirmSignupRequest, db: Session = Depends(get_db))
         logger.error(f"Unexpected error during confirmation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/confirm-forgot-password")
+def confirm_forgot_password(request: ConfirmForgotPasswordRequest):
+    try:
+        secret_hash = get_secret_hash(request.email)
+        response = client.confirm_forgot_password(
+            ClientId=COGNITO_CLIENT_ID,
+            Username=request.email,
+            ConfirmationCode=request.confirmation_code,
+            Password=request.new_password,
+            SecretHash=secret_hash
+        )
+
+        return {"message": "Password reset successful. You can now log in."}
+    
+    except client.exceptions.CodeMismatchException:
+        raise HTTPException(status_code=400, detail="Invalid confirmation code.")
+    
+    except client.exceptions.ExpiredCodeException:
+        raise HTTPException(status_code=400, detail="Confirmation code expired.")
+    
+    except client.exceptions.UserNotFoundException:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/resend-confirmation")
 def resend_confirmation(request: ResendConfirmationRequest):
     try:
+        secret_hash = get_secret_hash(request.username) if COGNITO_CLIENT_SECRET else None
+
         response = client.resend_confirmation_code(
             ClientId=COGNITO_CLIENT_ID,
             Username=request.username,
+            SecretHash=secret_hash,  # Include secret hash if needed
         )
-        logger.info(f"Confirmation code resent for {request.username}")
-        return {"message": "Confirmation code resent successfully"}
-    
+
+        logger.info(f"Confirmation code resent response: {response}")  # ✅ Log full response
+
+        return {
+            "message": "Confirmation code resent successfully",
+            "code_delivery_details": response.get("CodeDeliveryDetails", {})
+        }
+
     except client.exceptions.UserNotFoundException:
         logger.error(f"User not found for {request.username}")
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     except client.exceptions.NotAuthorizedException:
         logger.error(f"User {request.username} is already confirmed.")
         return {"message": "User is already confirmed. Please log in."}
-    
+
+    except client.exceptions.LimitExceededException:
+        logger.error(f"Too many resend attempts for {request.username}.")
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
+
+    except client.exceptions.CodeDeliveryFailureException:
+        logger.error(f"Failed to deliver code for {request.username}.")
+        raise HTTPException(status_code=500, detail="Code delivery failed. Check email/SMS settings.")
+
     except Exception as e:
         logger.error(f"Error during resend confirmation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+@app.post("/api/forgot-password")
+def forgot_password(request: ForgotPasswordRequest):
+    try:
+        response = client.forgot_password(
+            ClientId=COGNITO_CLIENT_ID,
+            Username=request.username,
+            SecretHash=get_secret_hash(request.username) if COGNITO_CLIENT_SECRET else None
+        )
+        return {"message": "Password reset code sent to email", "delivery_details": response["CodeDeliveryDetails"]}
+    except client.exceptions.UserNotFoundException:
+        raise HTTPException(status_code=404, detail="User not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/payments")
 def process_payment(request: Request, payment: PaymentRequest, db: Session = Depends(get_db)):
     try:
