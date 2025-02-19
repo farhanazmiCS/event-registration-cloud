@@ -2,7 +2,7 @@
 
 ## Usage Steps
 
-1. Add an `.env` file
+1. Add the `.env` file
 2. In the file, add the following:
 
     ```
