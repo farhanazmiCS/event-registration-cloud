@@ -49,7 +49,7 @@ export default function PaymentPage() {
     setError("");
 
     try {
-        const response = await fetch("http://localhost:8080/api/payments", {
+        const response = await fetch("http://localhost:8000/api/payments", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
