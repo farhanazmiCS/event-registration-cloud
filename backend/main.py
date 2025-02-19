@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import get_db
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 import boto3
 import os
 import hmac, hashlib, base64
@@ -64,6 +64,13 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class PaymentRequest(BaseModel):
+    event_id: int
+    amount: float = Field(gt=0, description="Amount must be greater than 0")
+    card_number: str = Field(min_length=16, max_length=16, pattern="^[0-9]{16}$", description="Card number must be exactly 16 digits")
+    expiry_date: str = Field(pattern="^(0[1-9]|1[0-2])\/([0-9]{2})$", description="Expiry must be in MM/YY format")
+    cvv: str = Field(min_length=3, max_length=4, pattern="^[0-9]{3,4}$", description="CVV must be 3 or 4 digits")
+
 # Initialize Cognito client
 client = boto3.client('cognito-idp', region_name=COGNITO_REGION)
 
@@ -86,6 +93,15 @@ def get_secret_hash(username):
         hashlib.sha256,
     ).digest()
     return base64.b64encode(dig).decode()
+
+def validate_expiry_date(expiry_date: str):
+    """Ensure expiry date is valid and not expired."""
+    expiry_month, expiry_year = map(int, expiry_date.split("/"))
+    expiry_year += 2000  # Convert YY to YYYY format
+    current_date = datetime.now()
+
+    if expiry_year < current_date.year or (expiry_year == current_date.year and expiry_month < current_date.month):
+        raise HTTPException(status_code=400, detail="Card expiry date is invalid or expired")
 
 @app.get("/")
 def read_root():
@@ -378,6 +394,34 @@ def resend_confirmation(request: ResendConfirmationRequest):
     except Exception as e:
         logger.error(f"Error during resend confirmation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/payments")
+def process_payment(payment: PaymentRequest, db: Session = Depends(get_db)):
+    try:
+        # Validate expiry date
+        validate_expiry_date(payment.expiry_date)
+
+        # Insert the payment record using raw SQL
+        db.execute(
+            text("""
+                INSERT INTO payments (user_cognito_sub, event_id, amount, payment_status, paid_at)
+                VALUES (:user_cognito_sub, :event_id, :amount, 'completed', :paid_at)
+            """),
+            {
+                "user_cognito_sub": "org-12345",
+                "event_id": payment.event_id,
+                "amount": payment.amount,
+                "paid_at": datetime.utcnow(),
+            }
+        )
+
+        db.commit()
+        return {"message": "Payment successful"}
+
+    except Exception as e:
+        db.rollback()  # Rollback in case of errors
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 
 from fastapi import Depends, HTTPException, Header
