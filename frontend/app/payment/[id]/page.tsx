@@ -66,7 +66,7 @@ export default function PaymentPage() {
           if (!response.ok) {
               console.error("Payment error:", data);
               const errorMessage = Array.isArray(data.detail)
-                ? data.detail.map((d) => d.msg).join(", ")
+                ? data.detail.map((d: { msg: string }) => d.msg).join(", ")
                 : data.detail;
               throw new Error(errorMessage || "Payment failed");
           }
@@ -74,7 +74,11 @@ export default function PaymentPage() {
           alert("Payment successful!");
           router.push("/dashboard");
     } catch (error) {
-        setError(error.message || "Failed to process payment. Please try again.");
+        if (error instanceof Error) {
+            setError(error.message);
+        } else {
+            setError("Failed to process payment. Please try again.");
+        }
     } finally {
         setIsLoading(false);
     }
