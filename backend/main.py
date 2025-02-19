@@ -369,6 +369,9 @@ def process_payment(request: Request, payment: PaymentRequest, db: Session = Dep
     try:
         user_sub = request.cookies.get("cognito_sub")
 
+        if not user_sub:
+            raise HTTPException(status_code=401, detail="Unauthorized: Missing user_sub cookie")
+
         # Validate expiry date
         validate_expiry_date(payment.expiry_date)
 
@@ -386,9 +389,25 @@ def process_payment(request: Request, payment: PaymentRequest, db: Session = Dep
             }
         )
 
+        # Insert into registrations table with status 'confirmed'
+        db.execute(
+            text("""
+                INSERT INTO registrations (user_cognito_sub, event_id, registration_status, registered_at)
+                VALUES (:user_cognito_sub, :event_id, 'confirmed', :registered_at)
+                ON CONFLICT (user_cognito_sub, event_id) DO NOTHING
+            """),
+            {
+                "user_cognito_sub": user_sub,
+                "event_id": payment.event_id,
+                "registered_at": datetime.utcnow(),
+            }
+        )
+
         db.commit()
         return {"message": "Payment successful"}
 
+    except HTTPException as e:
+        raise e
     except Exception as e:
         db.rollback()  # Rollback in case of errors
         raise HTTPException(status_code=400, detail=str(e))
