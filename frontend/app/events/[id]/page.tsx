@@ -1,18 +1,22 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchEvents, Event } from "@/lib/event_api";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
-export default function EventDetails({ params }: { params: { id: string } }) {
+export default function EventDetails() {
   const router = useRouter();
+  const params = useParams();
+
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadEvent() {
+      if (!params.id) return;
+
       try {
         const events = await fetchEvents();
         const foundEvent = events.find((e) => e.id === Number(params.id)) || null;
@@ -29,7 +33,6 @@ export default function EventDetails({ params }: { params: { id: string } }) {
 
   if (loading) return <p>Loading...</p>;
   if (!event) return <p>Event not found.</p>;
-
 
   const handleBookNow = () => {
     router.push(`/payment/${event.id}`);
@@ -64,7 +67,9 @@ export default function EventDetails({ params }: { params: { id: string } }) {
           <div className="bg-gray-100 p-4 rounded-lg">
             <h2 className="text-xl font-semibold mb-2">Tickets</h2>
             <p className="text-gray-600 mb-4">${event.price.toFixed(2)}</p>
-            <Button className="w-full mb-2" onClick={handleBookNow}>Book Now</Button>
+            <Button className="w-full mb-2" onClick={handleBookNow}>
+              Book Now
+              </Button>
             <p className="text-sm text-gray-500">
               {event.max_attendees} tickets remaining
             </p>
