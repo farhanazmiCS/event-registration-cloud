@@ -1,24 +1,39 @@
+"use client"
+
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { fetchEvents, Event } from "@/lib/event_api";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
-// Fetch the event details based on ID
-async function getEventById(id: number): Promise<Event | null> {
-  try {
-    const events = await fetchEvents();
-    return events.find((event) => event.id === id) || null;
-  } catch (error) {
-    console.error("Error fetching event:", error);
-    return null;
-  }
-}
+export default function EventDetails({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function EventDetails({ params }: { params: { id: string } }) {
-  const event = await getEventById(Number(params.id));
+  useEffect(() => {
+    async function loadEvent() {
+      try {
+        const events = await fetchEvents();
+        const foundEvent = events.find((e) => e.id === Number(params.id)) || null;
+        setEvent(foundEvent);
+      } catch (error) {
+        console.error("Error fetching event:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadEvent();
+  }, [params.id]);
 
-  if (!event) {
-    return <p>Event not found.</p>;
-  }
+  if (loading) return <p>Loading...</p>;
+  if (!event) return <p>Event not found.</p>;
+
+
+  const handleBookNow = () => {
+    router.push(`/payment/${event.id}`);
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -49,7 +64,7 @@ export default async function EventDetails({ params }: { params: { id: string } 
           <div className="bg-gray-100 p-4 rounded-lg">
             <h2 className="text-xl font-semibold mb-2">Tickets</h2>
             <p className="text-gray-600 mb-4">${event.price.toFixed(2)}</p>
-            <Button className="w-full mb-2">Book Now</Button>
+            <Button className="w-full mb-2" onClick={handleBookNow}>Book Now</Button>
             <p className="text-sm text-gray-500">
               {event.max_attendees} tickets remaining
             </p>
