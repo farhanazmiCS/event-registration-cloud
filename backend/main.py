@@ -10,6 +10,9 @@ import hmac, hashlib, base64
 import re
 from datetime import datetime
 import logging
+rom fastapi import Depends, HTTPException, Header
+import boto3
+
 from dotenv import load_dotenv
 
 
@@ -26,11 +29,11 @@ COGNITO_CLIENT_SECRET = os.getenv("COGNITO_CLIENT_SECRET")
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Print to verify environment variables
-print(f"COGNITO_CLIENT_ID: {COGNITO_CLIENT_ID}")
-print(f"COGNITO_USER_POOL_ID: {COGNITO_USER_POOL_ID}")
-print(f"COGNITO_REGION: {COGNITO_REGION}")
-print(f"COGNITO_CLIENT_SECRET: {COGNITO_CLIENT_SECRET}")
+# # Print to verify environment variables
+# print(f"COGNITO_CLIENT_ID: {COGNITO_CLIENT_ID}")
+# print(f"COGNITO_USER_POOL_ID: {COGNITO_USER_POOL_ID}")
+# print(f"COGNITO_REGION: {COGNITO_REGION}")
+# print(f"COGNITO_CLIENT_SECRET: {COGNITO_CLIENT_SECRET}")
 
 app = FastAPI()
 
@@ -60,6 +63,17 @@ class ConfirmSignupRequest(BaseModel):
 class ResendConfirmationRequest(BaseModel):
     username: str
 
+# Define a request model for event creation
+class EventCreate(BaseModel):
+    title: str
+    description: str
+    location: str
+    start_time: datetime
+    end_time: datetime
+    price: float
+    max_attendees: int
+    organizer_cognito_sub: str
+
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -81,14 +95,10 @@ def validate_phone_number(phone_number: str):
         raise HTTPException(status_code=400, detail="Invalid phone number format. Use +[country_code][number]")
 
 def get_secret_hash(username):
-    """Generate Cognito secret hash for authentication"""
-    if not COGNITO_CLIENT_SECRET:
-        logger.error("COGNITO_CLIENT_SECRET is not set in the environment variables.")
-        raise HTTPException(status_code=500, detail="Cognito client secret not configured.")
-    
+    """Generates Cognito secret hash"""
     message = username + COGNITO_CLIENT_ID
     dig = hmac.new(
-        COGNITO_CLIENT_SECRET.encode("utf-8"),  # Load secret from .env
+        COGNITO_CLIENT_SECRET.encode("utf-8"),  # Make sure this is not None
         message.encode("utf-8"),
         hashlib.sha256,
     ).digest()
@@ -132,17 +142,6 @@ def get_events(request: Request, db: Session = Depends(get_db)):
         logger.error(f"GET {request.url} - Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch events")
 
-# Define a request model for event creation
-class EventCreate(BaseModel):
-    title: str
-    description: str
-    location: str
-    start_time: datetime
-    end_time: datetime
-    price: float
-    max_attendees: int
-    organizer_cognito_sub: str
-
 @app.post("/events")
 def create_event(request: Request, event: EventCreate, db: Session = Depends(get_db)):
     user_sub = request.cookies.get("cognito_sub") # ✅ Extract user_sub from cookies
@@ -175,7 +174,6 @@ def create_event(request: Request, event: EventCreate, db: Session = Depends(get
         raise HTTPException(status_code=500, detail="Failed to create event")
 
     
-
 @app.get("/events/{event_id}")
 def get_event(request: Request, event_id: int, db: Session = Depends(get_db)):
     logger.info(f"GET {request.url} - Fetching event ID: {event_id}")
@@ -193,48 +191,18 @@ def get_event(request: Request, event_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error fetching event {event_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
-
-# @app.post("/api/login")
-# def login(request: LoginRequest, response: Response):
-#     try:
-#         logger.info("Attempting to log in user...")
-#         response = client.initiate_auth(
-#             AuthFlow="USER_PASSWORD_AUTH",
-#             AuthParameters={
-#                 "USERNAME": request.email,
-#                 "PASSWORD": request.password,
-#                 "SECRET_HASH": get_secret_hash(request.email),  # Include secret hash
-#             },
-#             ClientId=COGNITO_CLIENT_ID
-#         )
-        
-#         logger.info(f"Login successful: {response}")
-#         return {
-#             "access_token": response["AuthenticationResult"]["AccessToken"],
-#             "refresh_token": response["AuthenticationResult"]["RefreshToken"],
-#             "id_token": response["AuthenticationResult"]["IdToken"]
-#         }
-#     except client.exceptions.NotAuthorizedException as e:
-#         logger.error(f"NotAuthorizedException - {e}")
-#         raise HTTPException(status_code=401, detail="Incorrect username or password")
-#     except client.exceptions.UserNotFoundException as e:
-#         logger.error(f"UserNotFoundException - {e}")
-#         raise HTTPException(status_code=404, detail="User does not exist")
-#     except Exception as e:
-#         logger.error(f"Unexpected Error - {e}")
-#         raise HTTPException(status_code=500, detail=str(e))
-
 ### ✅ UPDATED LOGIN ROUTE: Store Tokens in Secure Cookies ###
 @app.post("/api/login")
 def login(request: LoginRequest, response: Response):
     try:
+
+        secret_hash = get_secret_hash(request.email)
         auth_response = client.initiate_auth(
             AuthFlow="USER_PASSWORD_AUTH",
             AuthParameters={
                 "USERNAME": request.email,
                 "PASSWORD": request.password,
-                "SECRET_HASH": get_secret_hash(request.email),
+                "SECRET_HASH": secret_hash,
             },
             ClientId=COGNITO_CLIENT_ID
         )
@@ -317,7 +285,7 @@ def signup(request: SignupRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/confirm-signup")
-def confirm_signup(request: ConfirmSignupRequest):
+def confirm_signup(request: ConfirmSignupRequest, db: Session = Depends(get_db)):
     try:
         logger.info(f"Attempting to confirm signup for username: {request.username}")
         secret_hash = get_secret_hash(request.username) if COGNITO_CLIENT_SECRET else None
@@ -329,28 +297,31 @@ def confirm_signup(request: ConfirmSignupRequest):
             SecretHash=secret_hash,
         )
 
-        # # ✅ Step 2: Retrieve User Info from Cognito
-        # user_data = client.admin_get_user(
-        #     UserPoolId=COGNITO_USER_POOL_ID,
-        #     Username=request.username
-        # )
+        # ✅ Step 2: Retrieve User Info from Cognito
+        user_data = client.admin_get_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=request.username
+        )
 
-        # # ✅ Step 3: Extract `sub`, `email`, and `name`
-        # user_attributes = {attr["Name"]: attr["Value"] for attr in user_data["UserAttributes"]}
-        # cognito_sub = user_attributes.get("sub")
-        # email = user_attributes.get("email")
-        # name = user_attributes.get("name")
-        # created_at = datetime.utcnow()  # Store current timestamp
+        # ✅ Step 3: Extract `sub`, `email`, and `name`
+        user_attributes = {attr["Name"]: attr["Value"] for attr in user_data["UserAttributes"]}
+        cognito_sub = user_attributes.get("sub")
+        email = user_attributes.get("email")
+        name = user_attributes.get("name")
+        created_at = datetime.utcnow()  # Store current timestamp
+        
+        # Log the extracted values for debugging
+        logger.info(f"Extracted user data: sub={cognito_sub}, email={email}, name={name}, created_at={created_at}")
 
-        # # ✅ Step 4: Insert User into PostgreSQL
-        # query = text("""
-        #     INSERT INTO USERS (cognito_sub, name, email, created_at) 
-        #     VALUES (:cognito_sub, :name, :email, :created_at)
-        #     ON CONFLICT (cognito_sub) DO NOTHING;
-        # """)
+        # ✅ Step 4: Insert User into PostgreSQL
+        query = text("""
+            INSERT INTO users (cognito_sub, name, email, created_at) 
+            VALUES (:cognito_sub, :name, :email, :created_at)
+            ON CONFLICT (cognito_sub) DO NOTHING;
+        """)
 
-        # db.execute(query, {"cognito_sub": cognito_sub, "name": name, "email": email, "created_at": created_at})
-        # db.commit()
+        db.execute(query, {"cognito_sub": cognito_sub, "name": name, "email": email, "created_at": created_at})
+        db.commit()
 
         logger.info(f"Account for {request.username} successfully confirmed.")
         return {"message": "Account successfully confirmed. You can now log in."}
@@ -370,8 +341,6 @@ def confirm_signup(request: ConfirmSignupRequest):
     except Exception as e:
         logger.error(f"Unexpected error during confirmation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
 
 @app.post("/api/resend-confirmation")
 def resend_confirmation(request: ResendConfirmationRequest):
@@ -423,13 +392,10 @@ def process_payment(payment: PaymentRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-
-from fastapi import Depends, HTTPException, Header
-import boto3
-
 ### ✅ UPDATED GET USER PROFILE: Extract Access Token from Cookies ###
 @app.get("/api/user-profile")
 def get_user_profile(request: Request):
+    logger.info(f"Received cookies: {request.cookies}")  # ✅ Debugging step
     access_token = request.cookies.get("access_token")  # ✅ Extract access token from cookies
 
     if not access_token:
@@ -440,15 +406,7 @@ def get_user_profile(request: Request):
         response = client.get_user(AccessToken=access_token)
 
         user_attributes = {attr["Name"]: attr["Value"] for attr in response["UserAttributes"]}
-        return {
-            "sub": user_attributes.get("sub"),
-            "name": user_attributes.get("name"),
-            "email": user_attributes.get("email"),
-            "phone_number": user_attributes.get("phone_number"),
-            "birthdate": user_attributes.get("birthdate"),
-            "family_name": user_attributes.get("family_name"),
-            "middle_name": user_attributes.get("middle_name"),
-        }
+        return user_attributes
 
     except client.exceptions.NotAuthorizedException:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -492,41 +450,6 @@ def logout(response: Response):
     response.delete_cookie("cognito_sub")
     return {"message": "Logged out successfully"}
 
-# @app.get("/api/user-profile")
-# def get_user_profile(Authorization: str = Header(None)):
-#     """
-#     Fetch user attributes from Cognito
-#     """
-#     if not Authorization:
-#         raise HTTPException(status_code=401, detail="Authorization token is required")
-
-#     try:
-#         # Extract access token from the header
-#         access_token = Authorization.split(" ")[1]  # Expecting "Bearer <token>"
-
-#         # Call Cognito to get user attributes
-#         client = boto3.client('cognito-idp', region_name=COGNITO_REGION)
-#         response = client.get_user(AccessToken=access_token)
-
-#         # Parse the response
-#         user_attributes = {attr["Name"]: attr["Value"] for attr in response["UserAttributes"]}
-
-#         return {
-#             "username": user_attributes.get("username", ""),
-#             "email": user_attributes.get("email", ""),
-#             "phone_number": user_attributes.get("phone_number", ""),
-#             "name": user_attributes.get("name", ""),
-#             "birthdate": user_attributes.get("birthdate", ""),
-#             "family_name": user_attributes.get("family_name", ""),
-#             "middle_name": user_attributes.get("middle_name", ""),
-#         }
-
-#     except client.exceptions.NotAuthorizedException:
-#         raise HTTPException(status_code=401, detail="Invalid token or session expired")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.get("/my-events")
 def get_my_events(request: Request, db: Session = Depends(get_db)):
     # ✅ Read user_sub from request cookies
@@ -564,8 +487,6 @@ def get_my_events(request: Request, db: Session = Depends(get_db)):
         logger.error(f"GET {request.url} - Error fetching user events: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch user events")
 
-
-
 @app.get("/createdevents")
 def get_created_events(request: Request, db: Session = Depends(get_db)):
     user_sub = request.cookies.get("cognito_sub")  # ✅ Read manually from request cookies
@@ -596,8 +517,6 @@ def get_created_events(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"GET {request.url} - Error fetching created events: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch created events")
-
-
 
 @app.put("/events/{event_id}")
 def update_event(request: Request, event_id: int, event: EventCreate, db: Session = Depends(get_db)):
@@ -639,7 +558,6 @@ def update_event(request: Request, event_id: int, event: EventCreate, db: Sessio
         logger.error(f"PUT {request.url} - Error updating event {event_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update event")
 
-
 @app.delete("/events/{event_id}")
 def delete_event(request: Request, event_id: int, db: Session = Depends(get_db)):
     # ✅ Read user_sub from request cookies
@@ -674,8 +592,6 @@ def delete_event(request: Request, event_id: int, db: Session = Depends(get_db))
     except Exception as e:
         logger.error(f"DELETE {request.url} - Error deleting event {event_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete event")
-
-
 
 @app.get("/health")
 def health_check():
