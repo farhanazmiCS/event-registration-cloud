@@ -10,7 +10,7 @@ import hmac, hashlib, base64
 import re
 from datetime import datetime
 import logging
-rom fastapi import Depends, HTTPException, Header
+from fastapi import Depends, HTTPException, Header
 import boto3
 
 from dotenv import load_dotenv
