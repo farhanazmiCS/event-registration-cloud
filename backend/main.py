@@ -313,6 +313,29 @@ def confirm_signup(request: ConfirmSignupRequest):
             SecretHash=secret_hash,
         )
 
+        # # ✅ Step 2: Retrieve User Info from Cognito
+        # user_data = client.admin_get_user(
+        #     UserPoolId=COGNITO_USER_POOL_ID,
+        #     Username=request.username
+        # )
+
+        # # ✅ Step 3: Extract `sub`, `email`, and `name`
+        # user_attributes = {attr["Name"]: attr["Value"] for attr in user_data["UserAttributes"]}
+        # cognito_sub = user_attributes.get("sub")
+        # email = user_attributes.get("email")
+        # name = user_attributes.get("name")
+        # created_at = datetime.utcnow()  # Store current timestamp
+
+        # # ✅ Step 4: Insert User into PostgreSQL
+        # query = text("""
+        #     INSERT INTO USERS (cognito_sub, name, email, created_at) 
+        #     VALUES (:cognito_sub, :name, :email, :created_at)
+        #     ON CONFLICT (cognito_sub) DO NOTHING;
+        # """)
+
+        # db.execute(query, {"cognito_sub": cognito_sub, "name": name, "email": email, "created_at": created_at})
+        # db.commit()
+
         logger.info(f"Account for {request.username} successfully confirmed.")
         return {"message": "Account successfully confirmed. You can now log in."}
 
