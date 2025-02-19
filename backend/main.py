@@ -365,8 +365,10 @@ def resend_confirmation(request: ResendConfirmationRequest):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/api/payments")
-def process_payment(payment: PaymentRequest, db: Session = Depends(get_db)):
+def process_payment(request: Request, payment: PaymentRequest, db: Session = Depends(get_db)):
     try:
+        user_sub = request.cookies.get("cognito_sub")
+
         # Validate expiry date
         validate_expiry_date(payment.expiry_date)
 
@@ -377,7 +379,7 @@ def process_payment(payment: PaymentRequest, db: Session = Depends(get_db)):
                 VALUES (:user_cognito_sub, :event_id, :amount, 'completed', :paid_at)
             """),
             {
-                "user_cognito_sub": "org-12345",
+                "user_cognito_sub": user_sub,
                 "event_id": payment.event_id,
                 "amount": payment.amount,
                 "paid_at": datetime.utcnow(),

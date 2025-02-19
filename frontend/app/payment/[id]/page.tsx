@@ -52,6 +52,7 @@ export default function PaymentPage() {
         const response = await fetch("http://localhost:8000/api/payments", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({
                 event_id: event.id,
                 amount: event.price,
