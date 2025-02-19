@@ -73,22 +73,16 @@ export default function Header() {
               </Link>
             </>
           )} 
-           
-          {isLoggedIn && (
-            <Link href="/profile" className="text-gray-600 hover:text-primary flex items-center">
-              <User className="w-4 h-4 mr-1" />
-              Profile
-            </Link>
-          )}
+          
         </nav>
 
         {/* Auth Buttons */}
         <div className="flex space-x-2">
           {isLoggedIn ? (
             <>
-              <Button variant="outline" onClick={() => router.push("/profile")}>
+              <Button variant="outline" onClick={() => router.push("/dashboard")}>
                 <User className="w-4 h-4 mr-1" />
-                Profile
+                Dashboard
               </Button>
               <Button variant="outline" onClick={handleLogout}>
                 Log Out
