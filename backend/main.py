@@ -24,7 +24,19 @@ COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
 COGNITO_REGION = os.getenv("COGNITO_REGION")
 COGNITO_CLIENT_SECRET = os.getenv("COGNITO_CLIENT_SECRET")
 
+# SES CONFIG
+AWS_REGION = os.getenv("AWS_REGION")
+AWS_SES_SENDER_EMAIL = os.getenv("AWS_SES_SENDER_EMAIL")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
+# Initialize AWS SES client
+ses_client = boto3.client(
+    "ses",
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -131,6 +143,25 @@ def validate_expiry_date(expiry_date: str):
 
     if expiry_year < current_date.year or (expiry_year == current_date.year and expiry_month < current_date.month):
         raise HTTPException(status_code=400, detail="Card expiry date is invalid or expired")
+    
+def send_email_notification(to_email: str, subject: str, body: str):
+    """Send email using AWS SES."""
+    try:
+        response = ses_client.send_email(
+            Source=AWS_SES_SENDER_EMAIL,
+            Destination={"ToAddresses": [to_email]},
+            Message={
+                "Subject": {"Data": subject},
+                "Body": {
+                    "Text": {"Data": body},
+                    "Html": {"Data": f"<html><body><h2>{body}</h2></body></html>"}
+                },
+            },
+        )
+        print(f"Email sent successfully: MessageId={response['MessageId']}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
 
 @app.get("/")
 def read_root():
@@ -504,6 +535,10 @@ def process_payment(request: Request, payment: PaymentRequest, db: Session = Dep
         # Validate expiry date
         validate_expiry_date(payment.expiry_date)
 
+        # Fetch user email from database
+        query = text("SELECT email FROM users WHERE cognito_sub = :user_sub")
+        user_email = db.execute(query, {"user_sub": user_sub}).scalar()
+
         with db.begin_nested():  # Ensures atomic operation: if one fails, everything rolls back
 
             # Insert the payment record
@@ -548,7 +583,19 @@ def process_payment(request: Request, payment: PaymentRequest, db: Session = Dep
             )
 
         db.commit()
-        return {"message": "Payment successful"}
+
+        # Send email notification using AWS SES
+        if user_email:
+            event_title = db.execute(text("SELECT title FROM events WHERE id = :event_id"), 
+                                     {"event_id": payment.event_id}).scalar()
+
+            send_email_notification(
+                to_email=user_email,
+                subject="Registration Confirmation - EventHub",
+                body=f"Thank you for registering for the event: {event_title}. <br/> <br/> Your payment of ${payment.amount} has been successfully processed."
+            )
+
+        return {"message": "Payment successful and email sent"}
 
     except HTTPException as e:
         raise e
