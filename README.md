@@ -1,4 +1,4 @@
-# Event Registration with the Cloud
+# Event Registration with Cloud
 
 ## Usage Steps
 
