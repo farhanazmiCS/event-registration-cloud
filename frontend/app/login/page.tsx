@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -40,29 +40,33 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
+  
     try {
+      if (!username.trim()) {
+        throw new Error("Username cannot be empty.");
+      }
+  
       const response = await fetch("http://localhost:8000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }), // ✅ Ensure username is sent
         credentials: "include",
       });
-
+  
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.detail || "Failed to login");
       }
-
-      // ✅ Trigger a re-check of authentication after login
-      router.refresh(); // ✅ Forces re-check
+  
+      router.refresh();
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid email or password");
+      setError(err instanceof Error ? err.message : "Invalid username or password");
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -70,7 +74,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
-            Enter your email and password to access your account
+            Enter your username and password to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -82,13 +86,13 @@ export default function LoginPage() {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
@@ -122,3 +126,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

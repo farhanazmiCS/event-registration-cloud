@@ -83,7 +83,7 @@ class EventCreate(BaseModel):
     organizer_cognito_sub: str
 
 class LoginRequest(BaseModel):
-    email: str
+    username: str
     password: str
 
 # Confirm New Password
@@ -93,7 +93,7 @@ class ConfirmPasswordRequest(BaseModel):
     new_password: str
 
 class ConfirmForgotPasswordRequest(BaseModel):
-    email: str
+    username: str
     confirmation_code: str
     new_password: str
 
@@ -213,12 +213,12 @@ def get_event(request: Request, event_id: int, db: Session = Depends(get_db)):
 @app.post("/api/login")
 def login(request: LoginRequest, response: Response):
     try:
+        secret_hash = get_secret_hash(request.username)  # ✅ Generate secret hash using username
 
-        secret_hash = get_secret_hash(request.email)
         auth_response = client.initiate_auth(
             AuthFlow="USER_PASSWORD_AUTH",
             AuthParameters={
-                "USERNAME": request.email,
+                "USERNAME": request.username,  # ✅ Use "USERNAME" instead of "email"
                 "PASSWORD": request.password,
                 "SECRET_HASH": secret_hash,
             },
@@ -228,7 +228,7 @@ def login(request: LoginRequest, response: Response):
         access_token = auth_response["AuthenticationResult"]["AccessToken"]
         refresh_token = auth_response["AuthenticationResult"]["RefreshToken"]
 
-        # ✅ Retrieve `sub` from Cognito
+        # ✅ Retrieve `sub` from Cognito to identify user
         user_response = client.get_user(AccessToken=access_token)
         sub = next((attr["Value"] for attr in user_response["UserAttributes"] if attr["Name"] == "sub"), None)
 
@@ -267,6 +267,7 @@ def login(request: LoginRequest, response: Response):
         raise HTTPException(status_code=404, detail="User does not exist")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/signup")
 def signup(request: SignupRequest):
@@ -394,26 +395,27 @@ def confirm_signup(request: ConfirmSignupRequest, db: Session = Depends(get_db))
 @app.post("/api/confirm-forgot-password")
 def confirm_forgot_password(request: ConfirmForgotPasswordRequest):
     try:
-        secret_hash = get_secret_hash(request.email)
+        secret_hash = get_secret_hash(request.username)  # ✅ Generate secret hash using username
+
         response = client.confirm_forgot_password(
             ClientId=COGNITO_CLIENT_ID,
-            Username=request.email,
+            Username=request.username,  # ✅ Use "username" instead of "email"
             ConfirmationCode=request.confirmation_code,
             Password=request.new_password,
             SecretHash=secret_hash
         )
 
         return {"message": "Password reset successful. You can now log in."}
-    
+
     except client.exceptions.CodeMismatchException:
         raise HTTPException(status_code=400, detail="Invalid confirmation code.")
-    
+
     except client.exceptions.ExpiredCodeException:
         raise HTTPException(status_code=400, detail="Confirmation code expired.")
-    
+
     except client.exceptions.UserNotFoundException:
         raise HTTPException(status_code=404, detail="User not found.")
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -458,16 +460,37 @@ def resend_confirmation(request: ResendConfirmationRequest):
 @app.post("/api/forgot-password")
 def forgot_password(request: ForgotPasswordRequest):
     try:
+        logger.info(f"Initiating forgot password request for username: {request.username}")
+
         response = client.forgot_password(
             ClientId=COGNITO_CLIENT_ID,
-            Username=request.username,
+            Username=request.username,  # ✅ Ensure username is correct
             SecretHash=get_secret_hash(request.username) if COGNITO_CLIENT_SECRET else None
         )
-        return {"message": "Password reset code sent to email", "delivery_details": response["CodeDeliveryDetails"]}
+
+        logger.info(f"Forgot Password Response: {response}")  # ✅ Log full response
+
+        return {
+            "message": "Password reset code sent to email",
+            "delivery_details": response.get("CodeDeliveryDetails", {})
+        }
+
     except client.exceptions.UserNotFoundException:
+        logger.error(f"User not found: {request.username}")
         raise HTTPException(status_code=404, detail="User not found")
+
+    except client.exceptions.LimitExceededException:
+        logger.error(f"Too many reset attempts for {request.username}. Try again later.")
+        raise HTTPException(status_code=429, detail="Too many reset attempts. Try again later.")
+
+    except client.exceptions.CodeDeliveryFailureException:
+        logger.error(f"Code delivery failed for {request.username}. Email settings might be misconfigured.")
+        raise HTTPException(status_code=500, detail="Failed to send reset code. Check email settings.")
+
     except Exception as e:
+        logger.error(f"Unexpected error in forgot password: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.post("/api/payments")
