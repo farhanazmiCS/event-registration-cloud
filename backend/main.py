@@ -46,6 +46,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class UpdateProfileRequest(BaseModel):
+    name: str
+    email: EmailStr
+    phone_number: str
+
 class SignupRequest(BaseModel):
     username: str
     birthdate: str  # Format: YYYY-MM-DD
@@ -540,6 +545,34 @@ def logout(response: Response):
     response.delete_cookie("refresh_token")
     response.delete_cookie("cognito_sub")
     return {"message": "Logged out successfully"}
+
+
+@app.put("/api/update-profile")
+def update_profile(request: Request, data: UpdateProfileRequest, db: Session = Depends(get_db)):
+    access_token = request.cookies.get("access_token")
+
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Unauthorized: No access token found.")
+
+    try:
+        # ✅ Update user attributes in Cognito
+        client.update_user_attributes(
+            AccessToken=access_token,
+            UserAttributes=[
+                {"Name": "name", "Value": data.name},
+                {"Name": "email", "Value": data.email},
+                {"Name": "phone_number", "Value": data.phone_number},
+            ],
+        )
+
+        return {"message": "Profile updated successfully"}
+
+    except client.exceptions.NotAuthorizedException:
+        raise HTTPException(status_code=403, detail="Not authorized to update user.")
+    except client.exceptions.UserNotFoundException:
+        raise HTTPException(status_code=404, detail="User not found.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/my-events")
 def get_my_events(request: Request, db: Session = Depends(get_db)):
