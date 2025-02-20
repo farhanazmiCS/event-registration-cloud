@@ -162,6 +162,14 @@ def send_email_notification(to_email: str, subject: str, body: str):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
+def verify_email(email):
+    try:
+        response = ses_client.verify_email_identity(EmailAddress=email)
+        print(f"Verification email sent to: {email}")
+        return response
+    except Exception as e:
+        print(f"Error verifying email: {e}")
+
 
 @app.get("/")
 def read_root():
@@ -354,7 +362,7 @@ def signup(request: SignupRequest):
         logger.info("Verification email should now be sent by Cognito.")
         
         # Added a line to send AWS identity verification email
-        ses_client.verify_email_identity(EmailAddress=request.email)
+        verify_email(request.email)
 
         return {"message": "User created successfully. A verification email has been sent."}
 
@@ -526,7 +534,17 @@ def forgot_password(request: ForgotPasswordRequest):
         logger.error(f"Unexpected error in forgot password: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/verify-email")
+async def verify_email_route(request: Request):
+    """API route to verify email."""
+    data = await request.json()
+    email = data.get("email")
 
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    response = verify_email(email)
+    return {"message": "Verification email sent successfully", "response": response}
 
 @app.post("/api/payments")
 def process_payment(request: Request, payment: PaymentRequest, db: Session = Depends(get_db)):

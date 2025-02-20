@@ -342,6 +342,32 @@ export default function Dashboard() {
     }
   };
 
+  const handleVerifyEmail = async () => {
+    if (!userProfile?.email) {
+      alert("Email is required");
+      return;
+    }
+  
+    try {
+      const response = await fetch("http://localhost:8000/api/verify-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: userProfile.email }),
+        credentials: "include",
+      });
+  
+      if (!response.ok) throw new Error("Failed to verify email");
+  
+      const data = await response.json();
+      alert(data.message);
+    } catch (error) {
+      console.error("Error verifying email:", error);
+      alert("Failed to send verification email.");
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-8">My Dashboard</h1>
@@ -438,6 +464,22 @@ export default function Dashboard() {
                   </div>
                   <Button variant="outline" onClick={handleEditProfile}>
                     Edit Profile
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="mt-5">
+              <CardHeader>
+                <CardTitle className="text-2xl">Notification Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-medium">Event Confirmation Notification</h3>
+                    <p className="text-sm text-muted-foreground">Receive an email notification when your event is confirmed.</p>
+                  </div>
+                  <Button variant="default" onClick={handleVerifyEmail}>
+                    Enable Notification
                   </Button>
                 </div>
               </CardContent>
