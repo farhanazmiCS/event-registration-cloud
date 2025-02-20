@@ -75,8 +75,8 @@ export default function EditEvent() {
         </div>
 
         <div>
-          <label htmlFor="max_attendees" className="block text-sm font-medium text-gray-700">Maximum Attendees</label>
-          <Input type="number" id="max_attendees" name="max_attendees" value={formData.max_attendees} onChange={handleChange} required />
+          <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Maximum Attendees</label>
+          <Input type="number" id="quantity" name="quantity" value={formData.quantity} onChange={handleChange} required />
         </div>
 
         <Button type="submit" className="w-full">Save Changes</Button>

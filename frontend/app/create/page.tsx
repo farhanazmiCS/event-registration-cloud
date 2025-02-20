@@ -16,7 +16,7 @@ export default function CreateEvent() {
     start_time: "",
     end_time: "",
     price: 0,
-    max_attendees: 0,
+    quantity: 0,
     organizer_cognito_sub: "", // ✅ Leave empty initially
   });
 
@@ -99,8 +99,8 @@ export default function CreateEvent() {
         </div>
 
         <div>
-          <label htmlFor="max_attendees" className="block text-sm font-medium text-gray-700">Maximum Attendees</label>
-          <Input type="number" id="max_attendees" name="max_attendees" placeholder="Max Attendees" value={formData.max_attendees} onChange={handleChange} required />
+          <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Maximum Attendees</label>
+          <Input type="number" id="quantity" name="quantity" placeholder="Max Attendees" value={formData.quantity} onChange={handleChange} required />
         </div>
 
         <Button type="submit" className="w-full">Create Event</Button>

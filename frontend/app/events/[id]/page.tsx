@@ -65,7 +65,7 @@ export default function EventDetails() {
               Book Now
               </Button>
             <p className="text-sm text-gray-500">
-              {event.max_attendees} tickets remaining
+              {event.quantity} tickets remaining
             </p>
           </div>
         </div>

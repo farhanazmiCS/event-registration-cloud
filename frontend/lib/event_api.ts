@@ -8,7 +8,7 @@
   start_time: string;
   end_time: string;
   price: number;
-  max_attendees: number;
+  quantity: number;
   created_at: string;
 }
 

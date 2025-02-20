@@ -79,7 +79,7 @@ class EventCreate(BaseModel):
     start_time: datetime
     end_time: datetime
     price: float
-    max_attendees: int
+    quantity: int
     organizer_cognito_sub: str
 
 class LoginRequest(BaseModel):
@@ -173,8 +173,8 @@ def create_event(request: Request, event: EventCreate, db: Session = Depends(get
 
     try:
         query = text("""
-            INSERT INTO events (title, description, location, start_time, end_time, price, max_attendees, organizer_cognito_sub, created_at) 
-            VALUES (:title, :description, :location, :start_time, :end_time, :price, :max_attendees, :user_sub, NOW())
+            INSERT INTO events (title, description, location, start_time, end_time, price, quantity, organizer_cognito_sub, created_at) 
+            VALUES (:title, :description, :location, :start_time, :end_time, :price, :quantity, :user_sub, NOW())
             RETURNING id
         """)
 
@@ -716,7 +716,7 @@ def update_event(request: Request, event_id: int, event: EventCreate, db: Sessio
             UPDATE events
             SET title = :title, description = :description, location = :location, 
                 start_time = :start_time, end_time = :end_time, price = :price, 
-                max_attendees = :max_attendees
+                quantity = :quantity
             WHERE id = :event_id AND organizer_cognito_sub = :user_sub
         """)
 
