@@ -63,16 +63,7 @@ export default function Header() {
           <Link href="/create" className="text-gray-600 hover:text-primary">
             Create Event
           </Link>
-          {isLoggedIn && (
-            <>
-              <Link href="/myevents" className="text-gray-600 hover:text-primary">
-                My Events
-              </Link>
-              <Link href="/createdevents" className="text-gray-600 hover:text-primary">
-                Created Events
-              </Link>
-            </>
-          )} 
+
           
         </nav>
 

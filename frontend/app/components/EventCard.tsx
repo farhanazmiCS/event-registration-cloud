@@ -11,13 +11,6 @@ interface EventCardProps {
 export default function EventCard({ event }: EventCardProps) {
   return (
     <Card>
-      <Image
-        src="/placeholder.svg?height=200&width=400"
-        alt={event.title}
-        width={400}
-        height={200}
-        className="w-full h-48 object-cover"
-      />
       <CardContent className="p-4">
         <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
         <p className="text-gray-600 mb-2">

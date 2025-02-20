@@ -40,13 +40,7 @@ export default function EventDetails() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Image
-        src="/placeholder.svg?height=400&width=800"
-        alt={event.title}
-        width={800}
-        height={400}
-        className="w-full h-64 object-cover rounded-lg mb-8"
-      />
+      
       <h1 className="text-3xl font-bold mb-4">{event.title}</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
         <div className="col-span-2">
