@@ -504,33 +504,48 @@ def process_payment(request: Request, payment: PaymentRequest, db: Session = Dep
         # Validate expiry date
         validate_expiry_date(payment.expiry_date)
 
-        # Insert the payment record using raw SQL
-        db.execute(
-            text("""
-                INSERT INTO payments (user_cognito_sub, event_id, amount, payment_status, paid_at)
-                VALUES (:user_cognito_sub, :event_id, :amount, 'completed', :paid_at)
-            """),
-            {
-                "user_cognito_sub": user_sub,
-                "event_id": payment.event_id,
-                "amount": payment.amount,
-                "paid_at": datetime.utcnow(),
-            }
-        )
+        with db.begin_nested():  # Ensures atomic operation: if one fails, everything rolls back
 
-        # Insert into registrations table with status 'confirmed'
-        db.execute(
-            text("""
-                INSERT INTO registrations (user_cognito_sub, event_id, registration_status, registered_at)
-                VALUES (:user_cognito_sub, :event_id, 'confirmed', :registered_at)
-                ON CONFLICT (user_cognito_sub, event_id) DO NOTHING
-            """),
-            {
-                "user_cognito_sub": user_sub,
-                "event_id": payment.event_id,
-                "registered_at": datetime.utcnow(),
-            }
-        )
+            # Insert the payment record
+            db.execute(
+                text("""
+                    INSERT INTO payments (user_cognito_sub, event_id, amount, payment_status, paid_at)
+                    VALUES (:user_cognito_sub, :event_id, :amount, 'completed', :paid_at)
+                """),
+                {
+                    "user_cognito_sub": user_sub,
+                    "event_id": payment.event_id,
+                    "amount": payment.amount,
+                    "paid_at": datetime.utcnow(),
+                }
+            )
+
+            # Insert into registrations table with status 'confirmed'
+            db.execute(
+                text("""
+                    INSERT INTO registrations (user_cognito_sub, event_id, registration_status, registered_at)
+                    VALUES (:user_cognito_sub, :event_id, 'confirmed', :registered_at)
+                    ON CONFLICT (user_cognito_sub, event_id) DO NOTHING
+                """),
+                {
+                    "user_cognito_sub": user_sub,
+                    "event_id": payment.event_id,
+                    "registered_at": datetime.utcnow(),
+                }
+            )
+
+            # Decrement the quantity of the event by 1
+            result = db.execute(
+                text("""
+                    UPDATE events
+                    SET quantity = quantity - 1
+                    WHERE id = :event_id AND quantity > 0
+                    RETURNING quantity
+                """),
+                {
+                    "event_id": payment.event_id
+                }
+            )
 
         db.commit()
         return {"message": "Payment successful"}

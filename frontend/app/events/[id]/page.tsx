@@ -61,11 +61,15 @@ export default function EventDetails() {
           <div className="bg-gray-100 p-4 rounded-lg">
             <h2 className="text-xl font-semibold mb-2">Tickets</h2>
             <p className="text-gray-600 mb-4">${event.price.toFixed(2)}</p>
-            <Button className="w-full mb-2" onClick={handleBookNow}>
+            <Button 
+              className="w-full mb-2" 
+              onClick={handleBookNow}
+              disabled={event.quantity === 0}
+            >
               Book Now
-              </Button>
-            <p className="text-sm text-gray-500">
-              {event.quantity} tickets remaining
+            </Button>
+            <p className={`text-sm ${event.quantity === 0 ? "text-red-500" : "text-gray-500"}`}>
+              {event.quantity === 0 ? "Sold Out" : `${event.quantity} tickets remaining`}
             </p>
           </div>
         </div>
