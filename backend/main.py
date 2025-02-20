@@ -275,14 +275,15 @@ def signup(request: SignupRequest):
         validate_phone_number(request.phone_number)
 
         logger.info(f"Attempting to sign up user: {request.username}")
+
         response = client.sign_up(
             ClientId=COGNITO_CLIENT_ID,
-            Username=request.username,
+            Username=request.username,  # Separate username (not email)
             Password=request.password,
             SecretHash=get_secret_hash(request.username),
             UserAttributes=[
-                {"Name": "phone_number", "Value": request.phone_number},  # Ensure valid format
-                {"Name": "email", "Value": request.email},
+                {"Name": "phone_number", "Value": request.phone_number},  
+                {"Name": "email", "Value": request.email},  
                 {"Name": "birthdate", "Value": request.birthdate},
                 {"Name": "family_name", "Value": request.family_name},
                 {"Name": "middle_name", "Value": request.middle_name},
@@ -291,7 +292,36 @@ def signup(request: SignupRequest):
         )
 
         logger.info(f"Signup successful: {response}")
-        return {"message": "User created successfully"}
+
+        # ✅ Fetch user details from Cognito to check if email is registered
+        user_data = client.admin_get_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=request.username
+        )
+        logger.info(f"User data retrieved after signup: {user_data}")
+
+        # ✅ Check if email attribute exists in user data
+        user_attributes = {attr["Name"]: attr["Value"] for attr in user_data["UserAttributes"]}
+        logger.info(f"Extracted User Attributes: {user_attributes}")
+
+        if "email" not in user_attributes:
+            logger.error("Email attribute missing in Cognito user data!")
+            raise HTTPException(status_code=500, detail="Email attribute missing in Cognito.")
+
+        # ✅ Force Cognito to trigger email verification by marking email_verified as false
+        logger.info(f"Triggering email verification for {request.email}")
+        update_response = client.admin_update_user_attributes(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=request.username,
+            UserAttributes=[
+                {"Name": "email_verified", "Value": "false"}
+            ],
+        )
+        logger.info(f"admin_update_user_attributes response: {update_response}")
+
+        logger.info("Verification email should now be sent by Cognito.")
+        return {"message": "User created successfully. A verification email has been sent."}
+
     except client.exceptions.UsernameExistsException:
         logger.error(f"Username already exists: {request.username}")
         raise HTTPException(status_code=400, detail="User already exists")
@@ -301,6 +331,7 @@ def signup(request: SignupRequest):
     except Exception as e:
         logger.error(f"Error in signup: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/confirm-signup")
 def confirm_signup(request: ConfirmSignupRequest, db: Session = Depends(get_db)):
