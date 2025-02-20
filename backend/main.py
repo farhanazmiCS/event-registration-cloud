@@ -352,6 +352,10 @@ def signup(request: SignupRequest):
         logger.info(f"admin_update_user_attributes response: {update_response}")
 
         logger.info("Verification email should now be sent by Cognito.")
+        
+        # Added a line to send AWS identity verification email
+        ses_client.verify_email_identity(EmailAddress=request.email)
+
         return {"message": "User created successfully. A verification email has been sent."}
 
     except client.exceptions.UsernameExistsException:

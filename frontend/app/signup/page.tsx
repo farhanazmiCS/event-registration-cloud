@@ -65,7 +65,8 @@ export default function SignupPage() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.detail || "Signup failed")
   
-      alert("Signup successful! Please check your email for the confirmation code.")
+      alert("Signup successful! Please check your email for the confirmation code." + 
+        " An email from AWS has also been sent to you. Please follow the instructions if you wish to receive email notifications.")
       router.push("/confirm") // ✅ Redirect user to confirmation page
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed")
