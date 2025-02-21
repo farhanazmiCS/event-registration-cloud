@@ -678,13 +678,13 @@ def refresh_access_token(response: Response, refresh_token: str = Cookie(None)):
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-### ✅ NEW ROUTE: Logout and Clear Cookies ###
 @app.post("/api/logout")
 def logout(response: Response):
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
-    response.delete_cookie("cognito_sub")
+    response.set_cookie("access_token", "", httponly=True, secure=True, samesite="None", path="/", max_age=0)
+    response.set_cookie("refresh_token", "", httponly=True, secure=True, samesite="None", path="/", max_age=0)
+    response.set_cookie("cognito_sub", "", httponly=False, secure=False, samesite="None", path="/", max_age=0)
     return {"message": "Logged out successfully"}
+
 
 
 @app.put("/api/update-profile")
