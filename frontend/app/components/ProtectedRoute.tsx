@@ -41,7 +41,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/user-profile", {
+        const response = await fetch("https://cloud.event-reg.publicvm.com/api/user-profile", {
           method: "GET",
           credentials: "include", // ✅ Automatically sends cookies
         });

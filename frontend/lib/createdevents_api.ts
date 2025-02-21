@@ -1,6 +1,6 @@
 export const fetchCreatedEvents = async (): Promise<Event[]> => {
   try {
-    const response = await fetch("http://localhost:8000/createdevents", {
+    const response = await fetch("https://cloud.event-reg.publicvm.com/createdevents", {
       method: "GET",
       credentials: "include", // ✅ Ensures cookies are sent with request
     });
@@ -19,7 +19,7 @@ export const fetchCreatedEvents = async (): Promise<Event[]> => {
 
 export const updateEvent = async (eventId: number, updatedData: Partial<Event>) => {
   try {
-    const response = await fetch(`http://localhost:8000/events/${eventId}`, {
+    const response = await fetch(`https://cloud.event-reg.publicvm.com/events/${eventId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // ✅ Ensures cookies are sent with request
@@ -39,7 +39,7 @@ export const updateEvent = async (eventId: number, updatedData: Partial<Event>) 
 
 export const deleteEvent = async (eventId: number) => {
   try {
-    const response = await fetch(`http://localhost:8000/events/${eventId}`, {
+    const response = await fetch(`https://cloud.event-reg.publicvm.com/events/${eventId}`, {
       method: "DELETE",
       credentials: "include", // ✅ Ensures cookies are sent with request
     });
@@ -57,7 +57,7 @@ export const deleteEvent = async (eventId: number) => {
 
 export const fetchEventById = async (eventId: string): Promise<Event | null> => {
   try {
-    const response = await fetch(`http://localhost:8000/events/${eventId}`, {
+    const response = await fetch(`https://cloud.event-reg.publicvm.com/events/${eventId}`, {
       method: "GET",
       credentials: "include", // ✅ Ensures cookies are sent with request
     });

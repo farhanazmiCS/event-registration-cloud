@@ -49,7 +49,7 @@ export default function PaymentPage() {
     setError("");
 
     try {
-        const response = await fetch("http://localhost:8000/api/payments", {
+        const response = await fetch("https://cloud.event-reg.publicvm.com/api/payments", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",

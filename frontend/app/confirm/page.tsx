@@ -23,7 +23,7 @@ export default function ConfirmSignupPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/api/confirm-signup", {
+      const response = await fetch("https://cloud.event-reg.publicvm.com/api/confirm-signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, confirmation_code: confirmationCode }),
@@ -47,7 +47,7 @@ export default function ConfirmSignupPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/api/resend-confirmation", {
+      const response = await fetch("https://cloud.event-reg.publicvm.com/api/resend-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),

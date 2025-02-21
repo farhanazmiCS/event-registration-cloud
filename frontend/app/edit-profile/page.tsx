@@ -26,7 +26,7 @@ export default function EditProfilePage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/api/update-profile", {
+      const response = await fetch("https://cloud.event-reg.publicvm.com/api/update-profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

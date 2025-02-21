@@ -15,7 +15,7 @@ export default function Header() {
     // ✅ Check authentication status whenever the route changes
     const checkAuth = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/user-profile", {
+        const response = await fetch("https://cloud.event-reg.publicvm.com/api/user-profile", {
           method: "GET",
           credentials: "include", // ✅ Sends cookies automatically
         });
@@ -35,7 +35,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:8000/api/logout", {
+      await fetch("https://cloud.event-reg.publicvm.com/api/logout", {
         method: "POST",
         credentials: "include",
       });

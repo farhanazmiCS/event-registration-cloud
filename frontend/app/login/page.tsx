@@ -20,7 +20,7 @@ export default function LoginPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/user-profile", {
+        const response = await fetch("https://cloud.event-reg.publicvm.com/api/user-profile", {
           method: "GET",
           credentials: "include",
         });
@@ -46,7 +46,7 @@ export default function LoginPage() {
         throw new Error("Username cannot be empty.");
       }
   
-      const response = await fetch("http://localhost:8000/api/login", {
+      const response = await fetch("https://cloud.event-reg.publicvm.com/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }), // ✅ Ensure username is sent

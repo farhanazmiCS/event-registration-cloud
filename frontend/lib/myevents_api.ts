@@ -2,7 +2,7 @@ import { Event } from "./event_api";
 
 export const fetchMyEvents = async (): Promise<Event[]> => {
   try {
-    const response = await fetch("http://localhost:8000/my-events", {
+    const response = await fetch("https://cloud.event-reg.publicvm.com/my-events", {
       method: "GET",
       credentials: "include", // ✅ Ensures cookies are sent
     });

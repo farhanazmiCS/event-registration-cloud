@@ -46,7 +46,7 @@ export default function CreateEvent() {
     }
   
     try {
-      const response = await fetch("http://localhost:8000/events", {
+      const response = await fetch("https://cloud.event-reg.publicvm.com/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // ✅ Ensures cookies are sent

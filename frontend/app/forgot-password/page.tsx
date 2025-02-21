@@ -14,7 +14,7 @@
 //     setError("");
 
 //     try {
-//       const response = await fetch("http://localhost:8000/api/forgot-password", {
+//       const response = await fetch("https://cloud.event-reg.publicvm.com/api/forgot-password", {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({ username }),
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/api/forgot-password", {
+      const response = await fetch("https://cloud.event-reg.publicvm.com/api/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),

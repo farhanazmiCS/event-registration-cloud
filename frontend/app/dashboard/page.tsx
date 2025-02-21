@@ -27,7 +27,7 @@
 // //     // Fetch user profile from backend
 // //     const fetchUserProfile = async () => {
 // //       try {
-// //         const response = await fetch("http://localhost:8000/api/user-profile", {
+// //         const response = await fetch("https://cloud.event-reg.publicvm.com/api/user-profile", {
 // //           method: "GET",
 // //           credentials: "include",
 // //         })
@@ -160,7 +160,7 @@
 //     // Fetch user profile from backend
 //     const fetchUserProfile = async () => {
 //       try {
-//         const response = await fetch("http://localhost:8000/api/user-profile", {
+//         const response = await fetch("https://cloud.event-reg.publicvm.com/api/user-profile", {
 //           method: "GET",
 //           credentials: "include",
 //         })
@@ -306,7 +306,7 @@ export default function Dashboard() {
     // Fetch user profile
     const fetchUserProfile = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/user-profile", {
+        const response = await fetch("https://cloud.event-reg.publicvm.com/api/user-profile", {
           method: "GET",
           credentials: "include",
         });
@@ -349,7 +349,7 @@ export default function Dashboard() {
     }
   
     try {
-      const response = await fetch("http://localhost:8000/api/verify-email", {
+      const response = await fetch("https://cloud.event-reg.publicvm.com/api/verify-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -36,7 +36,7 @@
 //     // Fetch user profile from backend
 //     const fetchUserProfile = async () => {
 //       try {
-//         const response = await fetch("http://localhost:8000/api/user-profile", {
+//         const response = await fetch("https://cloud.event-reg.publicvm.com/api/user-profile", {
 //           method: "GET",
 //           headers: {
 //             Authorization: `Bearer ${token}`,
@@ -144,7 +144,7 @@
 //     // Fetch user profile from backend (Using cookies)
 //     const fetchUserProfile = async () => {
 //       try {
-//         const response = await fetch("http://localhost:8000/api/user-profile", {
+//         const response = await fetch("https://cloud.event-reg.publicvm.com/api/user-profile", {
 //           method: "GET",
 //           credentials: "include", // ✅ Automatically sends HTTP-only cookies
 //         })

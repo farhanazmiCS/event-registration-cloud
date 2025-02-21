@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
   
     try {
-      const response = await fetch("http://localhost:8000/api/confirm-forgot-password", {
+      const response = await fetch("https://cloud.event-reg.publicvm.com/api/confirm-forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
