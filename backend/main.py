@@ -296,7 +296,7 @@ def login(request: LoginRequest, response: Response):
             key="cognito_sub",
             value=sub,
             httponly=False,
-            secure=False,
+            secure=True,
             samesite="None"
         )
 
