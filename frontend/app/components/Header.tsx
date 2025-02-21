@@ -57,14 +57,12 @@ export default function Header() {
 
         {/* Navigation */}
         <nav className="hidden md:flex space-x-4">
-          <Link href="/events" className="text-gray-600 hover:text-primary">
-            Events
-          </Link>
-          <Link href="/create" className="text-gray-600 hover:text-primary">
-            Create Event
-          </Link>
-
           
+          {isLoggedIn && (
+            <Link href="/create" className="text-gray-600 hover:text-primary">
+              Create Event
+            </Link>
+          )}
         </nav>
 
         {/* Auth Buttons */}
