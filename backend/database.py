@@ -11,7 +11,7 @@ print(f"db.py path ${dotenv_path}")
 load_dotenv(dotenv_path=dotenv_path)
 
 # Debugging: Print the DATABASE_URL to confirm it's loaded
-DATABASE_URL = os.getenv("DATA13ASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
 print("Using DATABASE_URL:", DATABASE_URL)
 
 engine = create_engine(DATABASE_URL)
