@@ -279,7 +279,7 @@ def login(request: LoginRequest, response: Response):
             value=access_token,
             httponly=True,
             secure=True,
-            samesite="Lax"
+            samesite="None"
         )
 
         # ✅ Store `refresh_token` in an HTTP-only cookie
@@ -288,7 +288,7 @@ def login(request: LoginRequest, response: Response):
             value=refresh_token,
             httponly=True,
             secure=True,
-            samesite="Lax"
+            samesite="None"
         )
 
         # ✅ Store `sub` in a readable cookie for frontend use
@@ -297,7 +297,7 @@ def login(request: LoginRequest, response: Response):
             value=sub,
             httponly=False,
             secure=False,
-            samesite="Lax"
+            samesite="None"
         )
 
         return {"message": "Login successful"}
@@ -670,7 +670,7 @@ def refresh_access_token(response: Response, refresh_token: str = Cookie(None)):
             value=new_access_token,
             httponly=True,
             secure=True,
-            samesite="Lax"
+            samesite="None"
         )
 
         return {"message": "Token refreshed"}
