@@ -58,9 +58,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.options("/api/login")
-async def preflight():
-    return JSONResponse(status_code=200)
 
 
 class UpdateProfileRequest(BaseModel):
